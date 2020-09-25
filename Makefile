@@ -2,7 +2,7 @@ APP_NAME = bitxid
 APP_VERSION = 0.1.0
 
 # build with version infos
-VERSION_DIR = github.com/bitxhub/${APP_NAME}
+VERSION_DIR = github.com/meshplus/${APP_NAME}
 BUILD_DATE = $(shell date +%FT%T)
 GIT_COMMIT = $(shell git log --pretty=format:'%h' -n 1)
 GIT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
