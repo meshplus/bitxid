@@ -1,0 +1,10 @@
+title = "BitXID configuration file"
+
+[log]
+  level = "info"
+  dir = "logs"
+  filename = "bitxhub.log"
+  report_caller = false
+  [log.module]
+    did = "info"
+    method = "info"
