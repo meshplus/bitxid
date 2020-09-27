@@ -2,8 +2,8 @@ package types
 
 // DocStorage stores info-doc for an element
 type DocDB interface {
-	Create(key, value []byte) error
-	Update(key, value []byte) error
+	Create(key, value []byte) (string, error)
+	Update(key, value []byte) (string, error)
 	Get(key []byte) (value []byte, err error)
 	Delete(key []byte) error
 	Has(key []byte) (bool, error)

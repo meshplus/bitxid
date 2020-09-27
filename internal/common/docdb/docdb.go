@@ -10,7 +10,8 @@ import (
 
 // DocDB .
 type DocDB struct {
-	store storage.Storage
+	basicAddr string
+	store     storage.Storage
 }
 
 var logger = log.NewWithModule("doc.DB")
@@ -19,7 +20,8 @@ var _ types.DocDB = (*DocDB)(nil)
 // NewDB .
 func NewDB(S storage.Storage) (*DocDB, error) {
 	return &DocDB{
-		store: S,
+		store:     S,
+		basicAddr: ".",
 	}, nil
 }
 
@@ -34,37 +36,37 @@ func (d *DocDB) Has(key []byte) (bool, error) {
 }
 
 // Create .
-func (d *DocDB) Create(key, value []byte) error {
+func (d *DocDB) Create(key, value []byte) (string, error) {
 	exist, err := d.Has(key)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if exist == true {
-		return errors.New("The key ALREADY existed in doc db")
+		return "", errors.New("The key ALREADY existed in doc db")
 	}
 	err = d.store.Put(key, value)
 	if err != nil {
 		logger.Error("[d.store.Put] err", err)
-		return err
+		return "", err
 	}
-	return nil
+	return d.basicAddr + "/" + string(key), nil
 }
 
 // Update .
-func (d *DocDB) Update(key, value []byte) error {
+func (d *DocDB) Update(key, value []byte) (string, error) {
 	exist, err := d.Has(key)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if exist == false {
-		return errors.New("The key NOT existed in doc db")
+		return "", errors.New("The key NOT existed in doc db")
 	}
 	err = d.store.Put(key, value)
 	if err != nil {
 		logger.Error("[d.store.Put] err", err)
-		return err
+		return "", err
 	}
-	return nil
+	return d.basicAddr + "/" + string(key), nil
 }
 
 // Get .
