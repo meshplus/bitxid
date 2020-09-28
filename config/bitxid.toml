@@ -8,3 +8,12 @@ title = "BitXID configuration file"
   [log.module]
     did = "info"
     method = "info"
+
+[bitxid]
+  [bitxid.did]
+    addr = "."
+  [bitxid.method]
+    addr = "."
+    is_root = true
+    genesis_metohd = "did:bitxhub:relayroot:."
+    genesis_admin = "did:bitxhub:relayroot:0x01"

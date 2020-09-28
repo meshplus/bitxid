@@ -7,6 +7,7 @@ import (
 	"github.com/meshplus/bitxhub-kit/storage"
 	"github.com/meshplus/bitxid/internal/common/docdb"
 	"github.com/meshplus/bitxid/internal/common/registry"
+	"github.com/meshplus/bitxid/internal/repo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )
@@ -35,6 +36,7 @@ const Size int = 64
 
 // Registry .
 type Registry struct {
+	config *repo.MethodConfig
 	table  *registry.Table
 	docdb  *docdb.DocDB
 	logger logrus.FieldLogger
@@ -58,7 +60,7 @@ type Item struct {
 type did string
 
 // New a MethodRegistry
-func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger) (*Registry, error) {
+func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.MethodConfig) (*Registry, error) {
 	rt, err := registry.NewTable(S1)
 	if err != nil {
 		fmt.Println("[registry.NewTable] err", err)
@@ -70,6 +72,7 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger) (*Registr
 		return nil, err
 	}
 	return &Registry{
+		config: MC,
 		table:  rt,
 		docdb:  db,
 		logger: L,
@@ -78,7 +81,33 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger) (*Registr
 }
 
 // SetupGenesis set up genesis to boot the whole methed system
-func SetupGenesis() {}
+func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
+	if !R.config.IsRoot {
+		return "", "", errors.New("This method registry is not a relay root, check the config")
+	}
+	method := R.config.GenesisMetohd
+	caller := did(R.config.GenesisAdmin)
+	docAddr, err := R.docdb.Create([]byte(method), doc)
+	if err != nil {
+		R.logger.Error("[R.docdb.Create] err:", err)
+		return "", "", err
+	}
+	docHash := sha3.Sum512(doc)
+	// update registry table:
+	err = R.table.UpdateItem([]byte(method),
+		Item{
+			key:     method,
+			docAddr: docAddr,
+			docHash: docHash[:],
+			status:  Normal,
+			owner:   caller,
+		})
+	if err != nil {
+		R.logger.Error("[R.table.UpdateItem] err:", err)
+		return docAddr, string(docHash[:]), err
+	}
+	return docAddr, string(docHash[:]), nil
+}
 
 // Apply apply rights for a new methd-name
 func (R *Registry) Apply(caller did, method string, sig []byte) error {
