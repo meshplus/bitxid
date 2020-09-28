@@ -15,8 +15,9 @@ import (
 // end with 1 (001, 101, 301, etc.) means on audit
 // end with 5 (005, 105, 205, 305, etc.) means audit failed
 // end with 0 (010, 110, 200, 310, etc.) means good
-// difference between
+// 101/105/110 301/305/310 not used currently
 const (
+	Initial         int = 000
 	ApplyAudit      int = 001
 	ApplyFailed     int = 005
 	ApplySuccess    int = 010
@@ -96,6 +97,10 @@ func (R *Registry) Apply(caller did, method string, sig []byte) error {
 	if exist == true {
 		return errors.New("The Method is ALREADY existed")
 	}
+	//
+	if !R.isStatus(method, Initial) {
+		return errors.New("Can not Apply for current status")
+	}
 	// creates item in table
 	err = R.table.CreateItem([]byte(method),
 		Item{
@@ -169,7 +174,7 @@ func (R *Registry) Register(caller did, method string, doc []byte, sig []byte) (
 			key:     method,
 			docAddr: docAddr,
 			docHash: docHash[:],
-			status:  RegisterSuccess,
+			status:  Normal,
 			owner:   caller,
 		})
 	if err != nil {
@@ -213,7 +218,7 @@ func (R *Registry) Update(caller did, method string, doc []byte, sig []byte) (st
 			key:     method,
 			docAddr: docAddr,
 			docHash: docHash[:],
-			status:  RegisterSuccess,
+			status:  Normal,
 			owner:   caller,
 		})
 	if err != nil {

@@ -1,1 +1,4 @@
 ./local
+./bin
+
+.DS_Store
