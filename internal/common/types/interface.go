@@ -7,6 +7,7 @@ type DocDB interface {
 	Get(key []byte) (value []byte, err error)
 	Delete(key []byte) error
 	Has(key []byte) (bool, error)
+	Close() error
 }
 
 // RegistryTable represents state table for a registry
@@ -16,6 +17,7 @@ type RegistryTable interface {
 	GetItem(key []byte, item interface{}) (err error)
 	HasItem(key []byte) (bool, error)
 	DeleteItem(key []byte) error
+	Close() error
 }
 
 type RegistryNetwork interface {

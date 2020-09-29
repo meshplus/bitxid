@@ -1,7 +1,6 @@
 package method
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/meshplus/bitxhub-kit/storage"
@@ -18,6 +17,7 @@ import (
 // end with 0 (010, 110, 200, 310, etc.) means good
 // 101/105/110 301/305/310 not used currently
 const (
+	Error           int = -001
 	Initial         int = 000
 	ApplyAudit      int = 001
 	ApplyFailed     int = 005
@@ -49,12 +49,12 @@ type Registry struct {
 // we suggest to store large data off-chain(in docdb)
 // and only some frequently used data on-chain(in cache)
 type Item struct {
-	key     string // primary key of the item, like a did
-	owner   did    // owner of the method, is a did
-	docAddr string // addr where the doc file stored
-	docHash []byte // hash of the doc file
-	status  int    // status of the item
-	cache   []byte // onchain storage part
+	Key     string // primary key of the item, like a did
+	Owner   did    // owner of the method, is a did
+	DocAddr string // addr where the doc file stored
+	DocHash []byte // hash of the doc file
+	Status  int    // status of the item
+	Cache   []byte // onchain storage part
 }
 
 type did string
@@ -63,12 +63,12 @@ type did string
 func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.MethodConfig) (*Registry, error) {
 	rt, err := registry.NewTable(S1)
 	if err != nil {
-		fmt.Println("[registry.NewTable] err", err)
+		L.Error("[New] registry.NewTable err", err)
 		return nil, err
 	}
 	db, err := docdb.NewDB(S2)
 	if err != nil {
-		fmt.Println("[docdb.NewDB] err", err)
+		L.Error("[New] registry.NewTable err", err)
 		return nil, err
 	}
 	return &Registry{
@@ -83,27 +83,27 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 // SetupGenesis set up genesis to boot the whole methed system
 func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
 	if !R.config.IsRoot {
-		return "", "", errors.New("This method registry is not a relay root, check the config")
+		return "", "", fmt.Errorf("[SetupGenesis] This method registry is not a relay root, check the config")
 	}
 	method := R.config.GenesisMetohd
 	caller := did(R.config.GenesisAdmin)
 	docAddr, err := R.docdb.Create([]byte(method), doc)
 	if err != nil {
-		R.logger.Error("[R.docdb.Create] err:", err)
+		R.logger.Error("[SetupGenesis] R.docdb.Create err:", err)
 		return "", "", err
 	}
 	docHash := sha3.Sum512(doc)
 	// update registry table:
-	err = R.table.UpdateItem([]byte(method),
+	err = R.table.CreateItem([]byte(method),
 		Item{
-			key:     method,
-			docAddr: docAddr,
-			docHash: docHash[:],
-			status:  Normal,
-			owner:   caller,
+			Key:     method,
+			DocAddr: docAddr,
+			DocHash: docHash[:],
+			Status:  Normal,
+			Owner:   caller,
 		})
 	if err != nil {
-		R.logger.Error("[R.table.UpdateItem] err:", err)
+		R.logger.Error("[SetupGenesis] R.table.CreateItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
 	return docAddr, string(docHash[:]), nil
@@ -120,25 +120,26 @@ func (R *Registry) Apply(caller did, method string, sig []byte) error {
 	// check if Method exists
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[Apply] R.HasMethod err:", err)
 		return err
 	}
 	if exist == true {
-		return errors.New("The Method is ALREADY existed")
+		return fmt.Errorf("[Apply] The Method is ALREADY existed")
 	}
 	//
-	if !R.isStatus(method, Initial) {
-		return errors.New("Can not Apply for current status")
+	status := R.getMethodStatus(method)
+	if status != Initial {
+		return fmt.Errorf("[Apply] Can not Register for current status: %d", status)
 	}
 	// creates item in table
 	err = R.table.CreateItem([]byte(method),
 		Item{
-			key:    method,
-			status: ApplyAudit,
-			owner:  caller,
+			Key:    method,
+			Status: ApplyAudit,
+			Owner:  caller,
 		})
 	if err != nil {
-		R.logger.Error("[R.table.CreateItem] err:", err)
+		R.logger.Error("[Apply] R.table.CreateItem err:", err)
 		return err
 	}
 	return nil
@@ -149,16 +150,17 @@ func (R *Registry) Apply(caller did, method string, sig []byte) error {
 func (R *Registry) AuditApply(caller did, method string, result bool, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[AuditApply] R.HasMethod err:", err)
 		return err
 	}
 	if exist == false {
-		return errors.New("The Method NOT existed")
+		return fmt.Errorf("[AuditApply] The Method NOT existed")
 	}
 	// check caller auth(admin of the bitxhub)
 	// ...
-	if !R.isStatus(method, ApplyAudit) {
-		return errors.New("Can not AuditApply for current status")
+	status := R.getMethodStatus(method)
+	if !(status == ApplyAudit || status == ApplyFailed) {
+		return fmt.Errorf("[AuditApply] Can not AuditApply for current status: %d", status)
 	}
 	if result {
 		err = R.auditStatus(method, ApplySuccess)
@@ -166,7 +168,7 @@ func (R *Registry) AuditApply(caller did, method string, result bool, sig []byte
 		err = R.auditStatus(method, ApplyFailed)
 	}
 	if err != nil {
-		R.logger.Error("[R.auditStatus] err:", err)
+		R.logger.Error("[AuditApply] R.auditStatus err:", err)
 		return err
 	}
 	return nil
@@ -177,37 +179,40 @@ func (R *Registry) AuditApply(caller did, method string, result bool, sig []byte
 func (R *Registry) Register(caller did, method string, doc []byte, sig []byte) (string, string, error) {
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[Register] R.HasMethod err:", err)
 		return "", "", err
 	}
 	if exist == false {
-		return "", "", errors.New("The Method NOT existed")
+		return "", "", fmt.Errorf("[Register] The Method NOT existed")
 	}
 	// only did who owns method-name can call this
 	if !R.owns(caller, method) {
-		return "", "", errors.New("Caller has no auth")
+		return "", "", fmt.Errorf("[Register] Caller has no auth")
 	}
-	if !R.isStatus(method, ApplySuccess) {
-		return "", "", errors.New("Can not Register for current status")
+	status := R.getMethodStatus(method)
+	if status != ApplySuccess {
+		return "", "", fmt.Errorf("[Register] Can not Register for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Create([]byte(method), doc)
 	if err != nil {
-		R.logger.Error("[R.docdb.Create] err:", err)
+		R.logger.Error("[Register] R.docdb.Create err:", err)
 		return "", "", err
 	}
 	docHash := sha3.Sum512(doc) // docHash := sha256.Sum256(doc)
 	// update registry table:
-	err = R.table.UpdateItem([]byte(method),
-		Item{
-			key:     method,
-			docAddr: docAddr,
-			docHash: docHash[:],
-			status:  Normal,
-			owner:   caller,
-		})
+	item := &Item{}
+	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
-		R.logger.Error("[R.table.UpdateItem] err:", err)
+		R.logger.Error("[Register] R.table.GetItem err:", err)
+		return "", "", err
+	}
+	item.Status = Normal
+	item.DocAddr = docAddr
+	item.DocHash = docHash[:]
+	err = R.table.UpdateItem([]byte(method), item)
+	if err != nil {
+		R.logger.Error("[Register] R.table.UpdateItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
 	// SyncToPeer
@@ -221,37 +226,38 @@ func (R *Registry) Update(caller did, method string, doc []byte, sig []byte) (st
 	// check auth
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[Update] R.HasMethod err:", err)
 		return "", "", err
 	}
 	if exist == false {
-		return "", "", errors.New("The Method NOT existed")
+		return "", "", fmt.Errorf("[Update] The Method NOT existed")
 	}
 	// only did who owns method-name can call this
 	if !R.owns(caller, method) {
-		return "", "", errors.New("Caller has no auth")
+		return "", "", fmt.Errorf("[Update] Caller has no auth")
 	}
-	if !R.isStatus(method, Normal) {
-		return "", "", errors.New("Can not Update for current status")
+	status := R.getMethodStatus(method)
+	if status != Normal {
+		return "", "", fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Update([]byte(method), doc)
 	if err != nil {
-		R.logger.Error("[R.docdb.Update] err:", err)
+		R.logger.Error("[Update] R.docdb.Update err:", err)
 		return "", "", err
 	}
 	// docHash := sha256.Sum256(doc)
 	docHash := sha3.Sum512(doc)
 	err = R.table.UpdateItem([]byte(method),
 		Item{
-			key:     method,
-			docAddr: docAddr,
-			docHash: docHash[:],
-			status:  Normal,
-			owner:   caller,
+			Key:     method,
+			DocAddr: docAddr,
+			DocHash: docHash[:],
+			Status:  Normal,
+			Owner:   caller,
 		})
 	if err != nil {
-		R.logger.Error("[R.table.UpdateItem] err:", err)
+		R.logger.Error("[Update] R.table.UpdateItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
 
@@ -265,11 +271,11 @@ func (R *Registry) Update(caller did, method string, doc []byte, sig []byte) (st
 func (R *Registry) Audit(caller did, method string, status int, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[Audit] R.HasMethod err:", err)
 		return err
 	}
 	if exist == false {
-		return errors.New("The Method NOT existed")
+		return fmt.Errorf("[Audit] The Method NOT existed")
 	}
 	// check caller auth(admin of the bitxhub)
 	// ...
@@ -283,11 +289,11 @@ func (R *Registry) Audit(caller did, method string, status int, sig []byte) erro
 func (R *Registry) Freeze(caller did, method string, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[Freeze] R.HasMethod err:", err)
 		return err
 	}
 	if exist == false {
-		return errors.New("The Method NOT existed")
+		return fmt.Errorf("[Freeze] The Method NOT existed")
 	}
 	// check caller auth(admin of the bitxhub)
 	// ...
@@ -301,11 +307,11 @@ func (R *Registry) Freeze(caller did, method string, sig []byte) error {
 func (R *Registry) UnFreeze(caller did, method string, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[UnFreeze] R.HasMethod err:", err)
 		return err
 	}
 	if exist == false {
-		return errors.New("The Method NOT existed")
+		return fmt.Errorf("[UnFreeze] The Method NOT existed")
 	}
 	// check caller auth(admin of the bitxhub)
 	// ...
@@ -314,73 +320,102 @@ func (R *Registry) UnFreeze(caller did, method string, sig []byte) error {
 	return nil
 }
 
+// Delete .
+func (R *Registry) Delete(caller did, method string, sig []byte) error {
+	err := R.auditStatus(method, Initial)
+	if err != nil {
+		R.logger.Error("[Delete] R.auditStatus err:", err)
+		return err
+	}
+
+	if !R.owns(caller, method) {
+		return fmt.Errorf("[Delete] Caller has no auth")
+	}
+
+	err = R.table.DeleteItem([]byte(method))
+	if err != nil {
+		R.logger.Error("[Delete] R.table.DeleteItem err:", err)
+		return err
+	}
+	err = R.docdb.Delete([]byte(method))
+	if err != nil {
+		R.logger.Error("[Delete] R.docdb.Delete err:", err)
+		return err
+	}
+	return nil
+}
+
 // Resolve .
 func (R *Registry) Resolve(caller did, method string, sig []byte) (Item, []byte, error) {
 	item := Item{}
 	exist, err := R.HasMethod(method)
 	if err != nil {
-		R.logger.Error("[R.HasMethod] err:", err)
+		R.logger.Error("[Resolve] R.HasMethod err:", err)
 		return Item{}, []byte{}, err
 	}
 	if exist == false {
-		return Item{}, []byte{}, errors.New("The Method NOT existed")
+		return Item{}, []byte{}, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
 	// look up local-chain first
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
-		R.logger.Error("[R.table.GetItem] err:", err)
+		R.logger.Error("[Resolve] R.table.GetItem err:", err)
 		return Item{}, []byte{}, err
 	}
 	doc, err := R.docdb.Get([]byte(method))
 	if err != nil {
-		R.logger.Error("[R.docdb.Get] err:", err)
+		R.logger.Error("[Resolve] R.docdb.Get err:", err)
 		return item, []byte{}, err
 	}
 	return item, doc, nil
-}
-
-func (R *Registry) owns(caller did, method string) bool {
-	item := Item{}
-	err := R.table.GetItem([]byte(method), &item)
-	if err != nil {
-		R.logger.Error("[R.docdb.Get] err:", err)
-		return false
-	}
-	if item.owner == caller {
-		return true
-	}
-	return false
-}
-
-func (R *Registry) isStatus(method string, status int) bool {
-	item := Item{}
-	R.table.GetItem([]byte(method), &item)
-	if item.status == status {
-		return true
-	}
-	return false
-}
-
-// Audit .
-func (R *Registry) auditStatus(method string, status int) error {
-	err := R.table.UpdateItem([]byte(method),
-		Item{
-			key:    method,
-			status: status,
-		})
-	if err != nil {
-		R.logger.Error("[R.table.UpdateItem] err:", err)
-		return err
-	}
-	return nil
 }
 
 // HasMethod .
 func (R *Registry) HasMethod(method string) (bool, error) {
 	exist, err := R.table.HasItem([]byte(method))
 	if err != nil {
-		R.logger.Error("[R.table.HasItem] err:", err)
+		R.logger.Error("[HasMethod] R.table.HasItem err:", err)
 		return false, err
 	}
 	return exist, err
+}
+
+func (R *Registry) owns(caller did, method string) bool {
+	item := Item{}
+	err := R.table.GetItem([]byte(method), &item)
+	if err != nil {
+		R.logger.Error("[owns] R.docdb.Get err:", err)
+		return false
+	}
+	if item.Owner == caller {
+		return true
+	}
+	return false
+}
+
+func (R *Registry) getMethodStatus(method string) int {
+	item := Item{}
+	err := R.table.GetItem([]byte(method), &item)
+	if err != nil {
+		R.logger.Error("[getMethodStatus] R.table.GetItem err:", err)
+		return Initial
+	}
+	return item.Status
+}
+
+// Audit .
+func (R *Registry) auditStatus(method string, status int) error {
+	item := &Item{}
+	err := R.table.GetItem([]byte(method), &item)
+	if err != nil {
+		R.logger.Error("[auditStatus] R.table.GetItem err:", err)
+		return err
+	}
+	item.Status = status
+	err = R.table.UpdateItem([]byte(method), item)
+	if err != nil {
+		R.logger.Error("[auditStatus] R.table.UpdateItem err:", err)
+		return err
+	}
+	return nil
 }

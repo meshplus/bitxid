@@ -116,3 +116,8 @@ func (r *Table) DeleteItem(key []byte) error {
 	}
 	return nil
 }
+
+// Close .
+func (r *Table) Close() error {
+	return r.store.Close()
+}

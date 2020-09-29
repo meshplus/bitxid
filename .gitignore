@@ -1,6 +1,6 @@
-./local
-./bin
-./config/registry.store/
-./config/doc.db/
+local
+bin
+config/registry.store/
+config/doc.db/
 
 .DS_Store

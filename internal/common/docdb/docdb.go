@@ -95,3 +95,8 @@ func (d *DocDB) Delete(key []byte) error {
 	}
 	return nil
 }
+
+// Close .
+func (d *DocDB) Close() error {
+	return d.store.Close()
+}
