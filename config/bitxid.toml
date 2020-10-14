@@ -12,6 +12,9 @@ title = "BitXID configuration file"
 [bitxid]
   [bitxid.did]
     addr = "."
+    genesis_account = "0x12348848"
+    genesis_admin = "did:bitxhub:relayroot:0x12348848"
+    genesis_doc = ""
   [bitxid.method]
     addr = "."
     is_root = true

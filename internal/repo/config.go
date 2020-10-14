@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -23,7 +24,10 @@ type BitXIDConfig struct {
 
 // DIDConfig .
 type DIDConfig struct {
-	Addr string `toml:"addr" json:"addr"`
+	Addr           string `toml:"addr" json:"addr"`
+	GenesisAdmin   string `toml:"genesis_admin" json:"genesis_admin"`
+	GenesisAccount string `toml:"genesis_account" json:"genesis_account"`
+	GenesisDoc     string `toml:"genesis_doc" json:"genesis_doc"`
 }
 
 // MethodConfig .
@@ -47,7 +51,10 @@ func DefaultConfig() (*Config, error) {
 func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 	return &BitXIDConfig{
 		DIDConfig: DIDConfig{
-			Addr: ".",
+			Addr:           ".",
+			GenesisAdmin:   "did:bitxhub:relayroot:0x12348848",
+			GenesisAccount: "0x12348848",
+			GenesisDoc:     "",
 		},
 		MethodConfig: MethodConfig{
 			Addr:          ".",
@@ -72,10 +79,12 @@ func UnmarshalConfig(repoRoot string) (*Config, error) {
 
 	config, err := DefaultConfig()
 	if err != nil {
+		fmt.Println("config DefaultConfig err", err)
 		return nil, err
 	}
 
 	if err := viper.Unmarshal(config); err != nil {
+		fmt.Println("config Unmarshal err", err)
 		return nil, err
 	}
 

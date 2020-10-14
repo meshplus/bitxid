@@ -71,6 +71,13 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 // SetupGenesis set up genesis to boot the whole did registry
 func (R *Registry) SetupGenesis() error {
 	caller := types.DID(R.config.GenesisAdmin)
+	// register genesis did:
+	_, _, err := R.Register(R.config.GenesisAccount, caller, []byte(R.config.GenesisDoc), []byte(""))
+	if err != nil {
+		R.logger.Error("did [SetupGenesis] register admin fail:", err)
+		return err
+	}
+	// add admins did:
 	R.admins = append(R.admins, caller)
 
 	return nil
@@ -89,7 +96,7 @@ func (R *Registry) Register(caller string, did types.DID, doc []byte, sig []byte
 	}
 	// check if caller owns the did
 	if !R.owns(caller, did) {
-		return "", "", fmt.Errorf("did [Register] Caller does not own this DID")
+		return "", "", fmt.Errorf("did [Register] Caller(%s) does not own this DID(%s)", caller, string(did))
 	}
 
 	docAddr, err := R.docdb.Create([]byte(did), doc)
@@ -164,7 +171,7 @@ func (R *Registry) Update(caller string, did types.DID, doc []byte, sig []byte) 
 }
 
 // Resolve looks up local-chain to resolve did.
-func (R *Registry) Resolve(caller types.DID, did types.DID, sig []byte) (Item, []byte, error) {
+func (R *Registry) Resolve(did types.DID) (Item, []byte, error) {
 	item := Item{}
 	exist, err := R.HasDID(did)
 	if err != nil {
@@ -190,7 +197,7 @@ func (R *Registry) Resolve(caller types.DID, did types.DID, sig []byte) (Item, [
 
 // Freeze .
 // ATN: only someone can call this.
-func (R *Registry) Freeze(caller string, did types.DID, sig []byte) error {
+func (R *Registry) Freeze(caller types.DID, did types.DID, sig []byte) error {
 	exist, err := R.HasDID(did)
 	if err != nil {
 		R.logger.Error("[Freeze] R.HasMethod err:", err)
@@ -208,44 +215,47 @@ func (R *Registry) Freeze(caller string, did types.DID, sig []byte) error {
 
 // UnFreeze .
 // ATN: only someone can call this.
-func (R *Registry) UnFreeze(caller string, method types.DID, sig []byte) error {
-	exist, err := R.HasDID(method)
+func (R *Registry) UnFreeze(caller types.DID, did types.DID, sig []byte) error {
+	exist, err := R.HasDID(did)
 	if err != nil {
-		R.logger.Error("[UnFreeze] R.HasMethod err:", err)
+		R.logger.Error("[UnFreeze] R.HasDID err:", err)
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("[UnFreeze] The Method NOT existed")
+		return fmt.Errorf("[UnFreeze] The DID NOT existed")
 	}
 	// check caller auth(admin of the bitxhub)
 	// ...
-	err = R.auditStatus(method, Normal)
+	err = R.auditStatus(did, Normal)
 
 	return nil
 }
 
 // Delete .
-func (R *Registry) Delete(caller string, did types.DID, sig []byte) error {
+func (R *Registry) Delete(did types.DID, sig []byte) error {
+	// if !R.owns(caller, did) {
+	// 	return fmt.Errorf("[Delete] Caller has no auth")
+	// }
+
+	// verify sig ann auth
+
 	err := R.auditStatus(did, Initial)
 	if err != nil {
 		R.logger.Error("[Delete] R.auditStatus err:", err)
 		return err
 	}
 
-	if !R.owns(caller, did) {
-		return fmt.Errorf("[Delete] Caller has no auth")
-	}
-
-	err = R.table.DeleteItem([]byte(did))
-	if err != nil {
-		R.logger.Error("[Delete] R.table.DeleteItem err:", err)
-		return err
-	}
 	err = R.docdb.Delete([]byte(did))
 	if err != nil {
 		R.logger.Error("[Delete] R.docdb.Delete err:", err)
 		return err
 	}
+	err = R.table.DeleteItem([]byte(did))
+	if err != nil {
+		R.logger.Error("[Delete] R.table.DeleteItem err:", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -275,6 +285,7 @@ func (R *Registry) owns(caller string, did types.DID) bool {
 	if s[len(s)-1] == caller {
 		return true
 	}
+	// need sig verify ...
 	return false
 }
 
