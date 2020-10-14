@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
+	"github.com/meshplus/bitxid/internal/common/types"
 	"github.com/meshplus/bitxid/internal/loggers"
 	"github.com/meshplus/bitxid/internal/repo"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ var docB []byte = []byte("{\"MethodName\":\"did:bitxhub:relayroot:.\",\"Auth\": 
 var docC []byte = []byte("{\"MethodName\":\"did:bitxhub:appchain001:.\",\"Auth\": {}}")
 var docD []byte = []byte("{\"MethodName\":\"did:bitxhub:appchain001:.\",\"Auth\": {0x12345678}}")
 
-var caller did = did("did:bitxhub:relayroot:0x12345678")
+var caller types.DID = types.DID("did:bitxhub:relayroot:0x12345678")
 
 var method string = "did:bitxhub:appchain001:."
 

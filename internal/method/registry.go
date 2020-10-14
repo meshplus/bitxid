@@ -6,6 +6,7 @@ import (
 	"github.com/meshplus/bitxhub-kit/storage"
 	"github.com/meshplus/bitxid/internal/common/docdb"
 	"github.com/meshplus/bitxid/internal/common/registry"
+	"github.com/meshplus/bitxid/internal/common/types"
 	"github.com/meshplus/bitxid/internal/repo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
@@ -40,24 +41,22 @@ type Registry struct {
 	table  *registry.Table
 	docdb  *docdb.DocDB
 	logger logrus.FieldLogger
-	admins []did // admins of the registry
+	admins []types.DID // admins of the registry
 	// network
 }
 
-// Item is item in Registry
-// registry table is used together with docdb
+// Item reperesentis a method item.
+// Registry table is used together with docdb,
 // we suggest to store large data off-chain(in docdb)
-// and only some frequently used data on-chain(in cache)
+// only some frequently used data on-chain(in cache).
 type Item struct {
-	Key     string // primary key of the item, like a did
-	Owner   did    // owner of the method, is a did
-	DocAddr string // addr where the doc file stored
-	DocHash []byte // hash of the doc file
-	Status  int    // status of the item
-	Cache   []byte // onchain storage part
+	Key     string    // primary key of the item, like a did
+	Owner   types.DID // owner of the method, is a did
+	DocAddr string    // addr where the doc file stored
+	DocHash []byte    // hash of the doc file
+	Status  int       // status of the item
+	Cache   []byte    // onchain storage part
 }
-
-type did string
 
 // New a MethodRegistry
 func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.MethodConfig) (*Registry, error) {
@@ -68,7 +67,7 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 	}
 	db, err := docdb.NewDB(S2)
 	if err != nil {
-		L.Error("[New] registry.NewTable err", err)
+		L.Error("[New] docdb.NewDB err", err)
 		return nil, err
 	}
 	return &Registry{
@@ -76,7 +75,7 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 		table:  rt,
 		docdb:  db,
 		logger: L,
-		admins: []did{""},
+		admins: []types.DID{""},
 	}, nil
 }
 
@@ -86,7 +85,8 @@ func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
 		return "", "", fmt.Errorf("[SetupGenesis] This method registry is not a relay root, check the config")
 	}
 	method := R.config.GenesisMetohd
-	caller := did(R.config.GenesisAdmin)
+	caller := types.DID(R.config.GenesisAdmin)
+	R.admins = append(R.admins, caller)
 	docAddr, err := R.docdb.Create([]byte(method), doc)
 	if err != nil {
 		R.logger.Error("[SetupGenesis] R.docdb.Create err:", err)
@@ -110,7 +110,7 @@ func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
 }
 
 // Apply apply rights for a new methd-name
-func (R *Registry) Apply(caller did, method string, sig []byte) error {
+func (R *Registry) Apply(caller types.DID, method string, sig []byte) error {
 	// check if did exists
 	// ..
 
@@ -147,7 +147,7 @@ func (R *Registry) Apply(caller did, method string, sig []byte) error {
 
 // AuditApply .
 // ATNS: only admin can call this.
-func (R *Registry) AuditApply(caller did, method string, result bool, sig []byte) error {
+func (R *Registry) AuditApply(caller types.DID, method string, result bool, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[AuditApply] R.HasMethod err:", err)
@@ -176,7 +176,7 @@ func (R *Registry) AuditApply(caller did, method string, result bool, sig []byte
 
 // Register ties method name to a method doc
 // ATN: only did who owns method-name can call this
-func (R *Registry) Register(caller did, method string, doc []byte, sig []byte) (string, string, error) {
+func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []byte) (string, string, error) {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Register] R.HasMethod err:", err)
@@ -222,8 +222,8 @@ func (R *Registry) Register(caller did, method string, doc []byte, sig []byte) (
 
 // Update .
 // ATN: only did who owns method-name can call this
-func (R *Registry) Update(caller did, method string, doc []byte, sig []byte) (string, string, error) {
-	// check auth
+func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byte) (string, string, error) {
+	// check exist
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Update] R.HasMethod err:", err)
@@ -248,14 +248,16 @@ func (R *Registry) Update(caller did, method string, doc []byte, sig []byte) (st
 	}
 	// docHash := sha256.Sum256(doc)
 	docHash := sha3.Sum512(doc)
-	err = R.table.UpdateItem([]byte(method),
-		Item{
-			Key:     method,
-			DocAddr: docAddr,
-			DocHash: docHash[:],
-			Status:  Normal,
-			Owner:   caller,
-		})
+	item := Item{}
+	err = R.table.GetItem([]byte(method), &item)
+	if err != nil {
+		R.logger.Error("did [Update] R.table.GetItem err:", err)
+		return docAddr, string(docHash[:]), err
+	}
+	item.DocAddr = docAddr
+	item.DocHash = docHash[:]
+	err = R.table.UpdateItem([]byte(method), item)
+
 	if err != nil {
 		R.logger.Error("[Update] R.table.UpdateItem err:", err)
 		return docAddr, string(docHash[:]), err
@@ -268,7 +270,7 @@ func (R *Registry) Update(caller did, method string, doc []byte, sig []byte) (st
 
 // Audit .
 // ATN: only admin can call this.
-func (R *Registry) Audit(caller did, method string, status int, sig []byte) error {
+func (R *Registry) Audit(caller types.DID, method string, status int, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Audit] R.HasMethod err:", err)
@@ -286,7 +288,7 @@ func (R *Registry) Audit(caller did, method string, status int, sig []byte) erro
 
 // Freeze .
 // ATN: only someone can call this.
-func (R *Registry) Freeze(caller did, method string, sig []byte) error {
+func (R *Registry) Freeze(caller types.DID, method string, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Freeze] R.HasMethod err:", err)
@@ -304,7 +306,7 @@ func (R *Registry) Freeze(caller did, method string, sig []byte) error {
 
 // UnFreeze .
 // ATN: only someone can call this.
-func (R *Registry) UnFreeze(caller did, method string, sig []byte) error {
+func (R *Registry) UnFreeze(caller types.DID, method string, sig []byte) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[UnFreeze] R.HasMethod err:", err)
@@ -321,7 +323,7 @@ func (R *Registry) UnFreeze(caller did, method string, sig []byte) error {
 }
 
 // Delete .
-func (R *Registry) Delete(caller did, method string, sig []byte) error {
+func (R *Registry) Delete(caller types.DID, method string, sig []byte) error {
 	err := R.auditStatus(method, Initial)
 	if err != nil {
 		R.logger.Error("[Delete] R.auditStatus err:", err)
@@ -346,8 +348,9 @@ func (R *Registry) Delete(caller did, method string, sig []byte) error {
 }
 
 // Resolve .
-func (R *Registry) Resolve(caller did, method string, sig []byte) (Item, []byte, error) {
+func (R *Registry) Resolve(caller types.DID, method string, sig []byte) (Item, []byte, error) {
 	item := Item{}
+	// looks up local-chain first:
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Resolve] R.HasMethod err:", err)
@@ -356,7 +359,7 @@ func (R *Registry) Resolve(caller did, method string, sig []byte) (Item, []byte,
 	if exist == false {
 		return Item{}, []byte{}, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
-	// look up local-chain first
+
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
 		R.logger.Error("[Resolve] R.table.GetItem err:", err)
@@ -380,7 +383,7 @@ func (R *Registry) HasMethod(method string) (bool, error) {
 	return exist, err
 }
 
-func (R *Registry) owns(caller did, method string) bool {
+func (R *Registry) owns(caller types.DID, method string) bool {
 	item := Item{}
 	err := R.table.GetItem([]byte(method), &item)
 	if err != nil {
@@ -403,7 +406,7 @@ func (R *Registry) getMethodStatus(method string) int {
 	return item.Status
 }
 
-// Audit .
+// auditStatus .
 func (R *Registry) auditStatus(method string, status int) error {
 	item := &Item{}
 	err := R.table.GetItem([]byte(method), &item)
