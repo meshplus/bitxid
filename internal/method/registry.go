@@ -84,16 +84,15 @@ func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
 	if !R.config.IsRoot {
 		return "", "", fmt.Errorf("[SetupGenesis] This method registry is not a relay root, check the config")
 	}
-	method := R.config.GenesisMetohd
 	caller := types.DID(R.config.GenesisAdmin)
-	R.admins = append(R.admins, caller)
+	// register genesis method:
+	method := R.config.GenesisMetohd
 	docAddr, err := R.docdb.Create([]byte(method), doc)
 	if err != nil {
 		R.logger.Error("[SetupGenesis] R.docdb.Create err:", err)
 		return "", "", err
 	}
 	docHash := sha3.Sum512(doc)
-	// update registry table:
 	err = R.table.CreateItem([]byte(method),
 		Item{
 			Key:     method,
@@ -106,6 +105,9 @@ func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
 		R.logger.Error("[SetupGenesis] R.table.CreateItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
+	// add admins did:
+	R.admins = append(R.admins, caller)
+
 	return docAddr, string(docHash[:]), nil
 }
 
@@ -334,16 +336,17 @@ func (R *Registry) Delete(caller types.DID, method string, sig []byte) error {
 		return fmt.Errorf("[Delete] Caller has no auth")
 	}
 
-	err = R.table.DeleteItem([]byte(method))
-	if err != nil {
-		R.logger.Error("[Delete] R.table.DeleteItem err:", err)
-		return err
-	}
 	err = R.docdb.Delete([]byte(method))
 	if err != nil {
 		R.logger.Error("[Delete] R.docdb.Delete err:", err)
 		return err
 	}
+	err = R.table.DeleteItem([]byte(method))
+	if err != nil {
+		R.logger.Error("[Delete] R.table.DeleteItem err:", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -373,6 +376,11 @@ func (R *Registry) Resolve(caller types.DID, method string, sig []byte) (Item, [
 	return item, doc, nil
 }
 
+// MethodHasAccount checks whether account exists on the method blockchain
+func (R *Registry) MethodHasAccount(method string, account string) {
+
+}
+
 // HasMethod .
 func (R *Registry) HasMethod(method string) (bool, error) {
 	exist, err := R.table.HasItem([]byte(method))
@@ -387,7 +395,7 @@ func (R *Registry) owns(caller types.DID, method string) bool {
 	item := Item{}
 	err := R.table.GetItem([]byte(method), &item)
 	if err != nil {
-		R.logger.Error("[owns] R.docdb.Get err:", err)
+		R.logger.Error("[owns] R.table.GetItem err: ", err)
 		return false
 	}
 	if item.Owner == caller {
@@ -400,7 +408,7 @@ func (R *Registry) getMethodStatus(method string) int {
 	item := Item{}
 	err := R.table.GetItem([]byte(method), &item)
 	if err != nil {
-		R.logger.Error("[getMethodStatus] R.table.GetItem err:", err)
+		R.logger.Warn("[getMethodStatus] R.table.GetItem err:", err)
 		return Initial
 	}
 	return item.Status
