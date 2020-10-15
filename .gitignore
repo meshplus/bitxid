@@ -4,3 +4,4 @@ config/registry.store/
 config/doc.db/
 
 .DS_Store
+.VSCodeCounter/

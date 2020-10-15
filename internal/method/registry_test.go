@@ -1,6 +1,7 @@
 package method
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/meshplus/bitxid/internal/loggers"
 	"github.com/meshplus/bitxid/internal/repo"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/sha3"
 )
 
 const (
@@ -21,7 +23,19 @@ var R *Registry
 
 var docB []byte = []byte("{\"MethodName\":\"did:bitxhub:relayroot:.\",\"Auth\": {}}")
 var docC []byte = []byte("{\"MethodName\":\"did:bitxhub:appchain001:.\",\"Auth\": {}}")
-var docD []byte = []byte("{\"MethodName\":\"did:bitxhub:appchain001:.\",\"Auth\": {0x12345678}}")
+
+var docd string = `{	"id":"did:bitxhub:relayroot:0x12345678",
+	"type": "user", 
+	"publicKey":[{
+		"id":"KEY#1",
+		"type": "Ed25519",
+		"publicKeyPem": "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
+	}],
+	"authentication":[
+		{"publicKey":["KEY#1"]}
+	]
+}`
+var docD []byte = []byte(docd)
 
 var caller types.DID = types.DID("did:bitxhub:relayroot:0x12345678")
 
@@ -43,12 +57,13 @@ func TestNew(t *testing.T) {
 }
 
 func TestSetupGenesisSucceed(t *testing.T) {
-	docHashE := "d449d8bdd3c92be218033594f5ae694bd7d105bf22b1a42875106a40f290669a56af06d7f6f5f7efcd14fae1798d9bc46ff28332503ab9567bbc00e5977874dc"
+	docHashE := sha3.Sum512(docB)
+	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./did:bitxhub:relayroot:."
 	docAddr, docHash, err := R.SetupGenesis(docB)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
-	assert.Equal(t, docHashE, strHash)
+	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 }
 
@@ -73,25 +88,27 @@ func TestAuditApplySucceed(t *testing.T) {
 }
 
 func TestRegisterSucceed(t *testing.T) {
-	docHashE := "86e48d2030c5443f871c158b82aca22b0ac8e36c5c0b78b1e3834dd272387d6c5581278f16ca9645fc221469c848fa715b3f5673cd635a2f7fe6cfc75cd8a54a"
+	docHashE := sha3.Sum512(docC)
+	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./did:bitxhub:appchain001:."
 	docAddr, docHash, err := R.Register(caller, method, docC, sig)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	item, _, err := R.Resolve(caller, method, sig)
 	assert.Nil(t, err)
-	assert.Equal(t, docHashE, strHash)
+	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 	assert.Equal(t, caller, item.Owner)
 }
 
 func TestUpdateSucceed(t *testing.T) {
-	docHashE := "07fff05bd1be2cbbb1aec145adf58da965d2f7106d0f777eb734586a925e4a6ebc371a0d990154711d13c0be8984b0a66e6c15a57d95bda21f4be0e32e0e4571"
+	docHashE := sha3.Sum512(docD)
+	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./did:bitxhub:appchain001:."
 	docAddr, docHash, err := R.Update(caller, method, docD, sig)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
-	assert.Equal(t, docHashE, strHash)
+	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 }
 
@@ -129,7 +146,6 @@ func TestUnFreezeSucceed(t *testing.T) {
 
 func TestResolveSucceed(t *testing.T) {
 	docAddrE := "./did:bitxhub:appchain001:."
-	// docHashE := "9f9c10312b85589aed30e4fd88676b580640e12ff682f5143ec0cdeba97a8e44239f0b5e152280f6be386b9871828a9084a0054df6ad4c0ce7d0435b2cadb77c"
 	item, doc, err := R.Resolve(caller, method, sig)
 	assert.Nil(t, err)
 	assert.Equal(t, docD, doc)
@@ -143,6 +159,30 @@ func TestResolveSucceed(t *testing.T) {
 	assert.Equal(t, itemE.Owner, item.Owner)
 	assert.Equal(t, itemE.DocAddr, item.DocAddr)
 	assert.Equal(t, itemE.Status, item.Status)
+}
+
+func TestUnMarshalSucceed(t *testing.T) {
+	_, doc, err := R.Resolve(caller, method, sig)
+	assert.Nil(t, err)
+	docE := Doc{}
+	docE.ID = "did:bitxhub:relayroot:0x12345678"
+	docE.Type = "user"
+	pk := types.PubKey{
+		ID:           "KEY#1",
+		Type:         "Ed25519",
+		PublicKeyPem: "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV",
+	}
+	docE.PublicKey = []types.PubKey{pk}
+	auth := types.Auth{
+		PublicKey: []string{"KEY#1"},
+	}
+	docE.Authentication = []types.Auth{auth}
+	// Unmarshal doc json byte to doc struct:
+	docR := Doc{}
+	err = json.Unmarshal(doc, &docR)
+	assert.Nil(t, err)
+
+	assert.Equal(t, docR, docE)
 }
 
 func TestOwnsSucceed(t *testing.T) {

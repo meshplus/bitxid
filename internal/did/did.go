@@ -8,6 +8,7 @@ import (
 	"github.com/meshplus/bitxid/internal/common/docdb"
 	"github.com/meshplus/bitxid/internal/common/registry"
 	"github.com/meshplus/bitxid/internal/common/types"
+	"github.com/meshplus/bitxid/internal/common/utils"
 	"github.com/meshplus/bitxid/internal/repo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
@@ -47,6 +48,12 @@ type Item struct {
 	Cache      []byte    // onchain storage part
 }
 
+// Doc .
+type Doc struct {
+	types.BasicDoc
+	Service string `json:"service"`
+}
+
 // New a MethodRegistry
 func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.DIDConfig) (*Registry, error) {
 	rt, err := registry.NewTable(S1)
@@ -66,6 +73,25 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 		logger: L,
 		admins: []types.DID{""},
 	}, nil
+}
+
+// UnmarshalDoc convert byte doc to struct doc
+func UnmarshalDoc(docBytes []byte) (Doc, error) {
+	docStruct := Doc{}
+	err := utils.Bytes2Struct(docBytes, &docStruct)
+	if err != nil {
+		return Doc{}, err
+	}
+	return docStruct, nil
+}
+
+// MarshalDoc convert struct doc to byte doc
+func MarshalDoc(docStruct Doc) ([]byte, error) {
+	docBytes, err := utils.Struct2Bytes(docStruct)
+	if err != nil {
+		return []byte{}, err
+	}
+	return docBytes, nil
 }
 
 // SetupGenesis set up genesis to boot the whole did registry
