@@ -5,11 +5,12 @@ import (
 	"strings"
 
 	"github.com/meshplus/bitxhub-kit/storage"
-	"github.com/meshplus/bitxid/internal/common/docdb"
-	"github.com/meshplus/bitxid/internal/common/registry"
-	"github.com/meshplus/bitxid/internal/common/types"
-	"github.com/meshplus/bitxid/internal/common/utils"
-	"github.com/meshplus/bitxid/internal/repo"
+
+	"github.com/bitxhub/bitxid/internal/common/docdb"
+	"github.com/bitxhub/bitxid/internal/common/registry"
+	"github.com/bitxhub/bitxid/internal/common/types"
+	"github.com/bitxhub/bitxid/internal/common/utils"
+	"github.com/bitxhub/bitxid/internal/repo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )

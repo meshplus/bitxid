@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
-	"github.com/meshplus/bitxid/internal/common/types"
-	"github.com/meshplus/bitxid/internal/loggers"
-	"github.com/meshplus/bitxid/internal/repo"
+	"github.com/bitxhub/bitxid/internal/common/types"
+	"github.com/bitxhub/bitxid/internal/loggers"
+	"github.com/bitxhub/bitxid/internal/repo"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/sha3"
 )

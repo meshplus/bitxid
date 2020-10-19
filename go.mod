@@ -1,4 +1,4 @@
-module github.com/meshplus/bitxid
+module github.com/bitxhub/bitxid
 
 go 1.14
 
