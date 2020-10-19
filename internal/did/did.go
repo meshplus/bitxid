@@ -11,7 +11,6 @@ import (
 	"github.com/bitxhub/bitxid/internal/common/types"
 	"github.com/bitxhub/bitxid/internal/common/utils"
 	"github.com/bitxhub/bitxid/internal/repo"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )
@@ -50,16 +49,22 @@ type Item struct {
 	Cache      []byte    // onchain storage part
 }
 
+// Doc .
+type Doc struct {
+	types.BasicDoc
+	Service string `json:"service"`
+}
+
 // New a MethodRegistry
 func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.DIDConfig) (*Registry, error) {
 	rt, err := registry.NewTable(S1)
 	if err != nil {
-		L.Error("did [New] registry.NewTable err", err)
+		L.Error("[New] registry.NewTable err", err)
 		return nil, err
 	}
 	db, err := docdb.NewDB(S2)
 	if err != nil {
-		L.Error("did [New] docdb.NewDB err", err)
+		L.Error("[New] docdb.NewDB err", err)
 		return nil, err
 	}
 	return &Registry{
@@ -71,13 +76,32 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 	}, nil
 }
 
+// UnmarshalDoc convert byte doc to struct doc
+func UnmarshalDoc(docBytes []byte) (Doc, error) {
+	docStruct := Doc{}
+	err := utils.Bytes2Struct(docBytes, &docStruct)
+	if err != nil {
+		return Doc{}, err
+	}
+	return docStruct, nil
+}
+
+// MarshalDoc convert struct doc to byte doc
+func MarshalDoc(docStruct Doc) ([]byte, error) {
+	docBytes, err := utils.Struct2Bytes(docStruct)
+	if err != nil {
+		return []byte{}, err
+	}
+	return docBytes, nil
+}
+
 // SetupGenesis set up genesis to boot the whole did registry
 func (R *Registry) SetupGenesis() error {
 	caller := types.DID(R.config.GenesisAdmin)
 	// register genesis did:
 	_, _, err := R.Register(R.config.GenesisAccount, caller, []byte(R.config.GenesisDoc), []byte(""))
 	if err != nil {
-		R.logger.Error("did [SetupGenesis] register admin fail:", err)
+		R.logger.Error("[SetupGenesis] register admin fail:", err)
 		return err
 	}
 	// add admins did:
@@ -91,20 +115,20 @@ func (R *Registry) SetupGenesis() error {
 func (R *Registry) Register(caller string, did types.DID, doc []byte, sig []byte) (string, string, error) {
 	exist, err := R.HasDID(did)
 	if err != nil {
-		R.logger.Error("did [Register] R.HasDID err:", err)
+		R.logger.Error("[Register] R.HasDID err:", err)
 		return "", "", err
 	}
 	if exist == true {
-		return "", "", fmt.Errorf("did [Register] The DID Already existed")
+		return "", "", fmt.Errorf("[Register] The DID Already existed")
 	}
 	// check if caller owns the did
 	if !R.owns(caller, did) {
-		return "", "", fmt.Errorf("did [Register] Caller(%s) does not own this DID(%s)", caller, string(did))
+		return "", "", fmt.Errorf("[Register] Caller(%s) does not own this DID(%s)", caller, string(did))
 	}
 
 	docAddr, err := R.docdb.Create([]byte(did), doc)
 	if err != nil {
-		R.logger.Error("did [Register] R.docdb.Create err:", err)
+		R.logger.Error("[Register] R.docdb.Create err:", err)
 		return "", "", err
 	}
 	docHash := sha3.Sum512(doc)
@@ -133,38 +157,38 @@ func (R *Registry) Update(caller string, did types.DID, doc []byte, sig []byte) 
 	// check exist
 	exist, err := R.HasDID(did)
 	if err != nil {
-		R.logger.Error("did [Update] R.HasDID err:", err)
+		R.logger.Error("[Update] R.HasDID err:", err)
 		return "", "", err
 	}
 	if exist == false {
-		return "", "", fmt.Errorf("did [Update] The DID NOT existed")
+		return "", "", fmt.Errorf("[Update] The DID NOT existed")
 	}
 	// only caller who owns did can call this
 	if !R.owns(caller, did) {
-		return "", "", fmt.Errorf("did [Update] Caller does not own this DID")
+		return "", "", fmt.Errorf("[Update] Caller does not own this DID")
 	}
 	status := R.getDIDStatus(did)
 	if status != Normal {
-		return "", "", fmt.Errorf("did [Update] Can not Update for current status: %d", status)
+		return "", "", fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Update([]byte(did), doc)
 	if err != nil {
-		R.logger.Error("did [Update] R.docdb.Update err:", err)
+		R.logger.Error("[Update] R.docdb.Update err:", err)
 		return "", "", err
 	}
 	docHash := sha3.Sum512(doc)
 	item := Item{}
 	err = R.table.GetItem([]byte(did), &item)
 	if err != nil {
-		R.logger.Error("did [Update] R.table.GetItem err:", err)
+		R.logger.Error("[Update] R.table.GetItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
 	item.DocAddr = docAddr
 	item.DocHash = docHash[:]
 	err = R.table.UpdateItem([]byte(did), item)
 	if err != nil {
-		R.logger.Error("did [Update] R.table.UpdateItem err:", err)
+		R.logger.Error("[Update] R.table.UpdateItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
 
@@ -178,21 +202,21 @@ func (R *Registry) Resolve(did types.DID) (Item, []byte, error) {
 	item := Item{}
 	exist, err := R.HasDID(did)
 	if err != nil {
-		R.logger.Error("did [Resolve] R.HasDID err:", err)
+		R.logger.Error("[Resolve] R.HasDID err:", err)
 		return Item{}, []byte{}, err
 	}
 	if exist == false {
-		return Item{}, []byte{}, fmt.Errorf("did [Resolve] The Method NOT existed")
+		return Item{}, []byte{}, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
 
 	err = R.table.GetItem([]byte(did), &item)
 	if err != nil {
-		R.logger.Error("did [Resolve] R.table.GetItem err:", err)
+		R.logger.Error("[Resolve] R.table.GetItem err:", err)
 		return Item{}, []byte{}, err
 	}
 	doc, err := R.docdb.Get([]byte(did))
 	if err != nil {
-		R.logger.Error("did [Resolve] R.docdb.Get err:", err)
+		R.logger.Error("[Resolve] R.docdb.Get err:", err)
 		return item, []byte{}, err
 	}
 	return item, doc, nil
@@ -266,7 +290,7 @@ func (R *Registry) Delete(did types.DID, sig []byte) error {
 func (R *Registry) HasDID(did types.DID) (bool, error) {
 	exist, err := R.table.HasItem([]byte(did))
 	if err != nil {
-		R.logger.Error("did [HasDID] R.table.HasItem err:", err)
+		R.logger.Error("[HasDID] R.table.HasItem err:", err)
 		return false, err
 	}
 	return exist, err
@@ -276,7 +300,7 @@ func (R *Registry) getDIDStatus(did types.DID) int {
 	item := Item{}
 	err := R.table.GetItem([]byte(did), &item)
 	if err != nil {
-		R.logger.Error("did [getDIDStatus] R.table.GetItem err:", err)
+		R.logger.Error("[getDIDStatus] R.table.GetItem err:", err)
 		return Initial
 	}
 	return item.Status
@@ -296,13 +320,13 @@ func (R *Registry) auditStatus(did types.DID, status int) error {
 	item := &Item{}
 	err := R.table.GetItem([]byte(did), &item)
 	if err != nil {
-		R.logger.Error("did [auditStatus] R.table.GetItem err:", err)
+		R.logger.Error("[auditStatus] R.table.GetItem err:", err)
 		return err
 	}
 	item.Status = status
 	err = R.table.UpdateItem([]byte(did), item)
 	if err != nil {
-		R.logger.Error("did [auditStatus] R.table.UpdateItem err:", err)
+		R.logger.Error("[auditStatus] R.table.UpdateItem err:", err)
 		return err
 	}
 	return nil

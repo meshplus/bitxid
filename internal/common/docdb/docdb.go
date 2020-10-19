@@ -1,7 +1,7 @@
 package docdb
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/bitxhub/bitxid/internal/common/types"
 	"github.com/meshplus/bitxhub-kit/log"
@@ -29,7 +29,7 @@ func NewDB(S storage.Storage) (*DocDB, error) {
 func (d *DocDB) Has(key []byte) (bool, error) {
 	exists, err := d.store.Has(key)
 	if err != nil {
-		logger.Error("[d.store.Has] err:", err)
+		logger.Error("d.store.Has err:", err)
 		return false, err
 	}
 	return exists, err
@@ -42,11 +42,11 @@ func (d *DocDB) Create(key, value []byte) (string, error) {
 		return "", err
 	}
 	if exist == true {
-		return "", errors.New("The key ALREADY existed in doc db")
+		return "", fmt.Errorf("The key ALREADY existed in doc db")
 	}
 	err = d.store.Put(key, value)
 	if err != nil {
-		logger.Error("[d.store.Put] err", err)
+		logger.Error("d.store.Put err", err)
 		return "", err
 	}
 	return d.basicAddr + "/" + string(key), nil
@@ -59,11 +59,11 @@ func (d *DocDB) Update(key, value []byte) (string, error) {
 		return "", err
 	}
 	if exist == false {
-		return "", errors.New("The key NOT existed in doc db")
+		return "", fmt.Errorf("The key NOT existed in doc db")
 	}
 	err = d.store.Put(key, value)
 	if err != nil {
-		logger.Error("[d.store.Put] err", err)
+		logger.Error("d.store.Put err", err)
 		return "", err
 	}
 	return d.basicAddr + "/" + string(key), nil
@@ -76,11 +76,11 @@ func (d *DocDB) Get(key []byte) (value []byte, err error) {
 		return []byte{}, err
 	}
 	if exist == false {
-		return []byte{}, errors.New("The key NOT existed in doc db")
+		return []byte{}, fmt.Errorf("The key NOT existed in doc db")
 	}
 	value, err = d.store.Get(key)
 	if err != nil {
-		logger.Error("[d.store.Get] err", err)
+		logger.Error("d.store.Get err", err)
 		return []byte{}, err
 	}
 	return value, nil
@@ -90,7 +90,7 @@ func (d *DocDB) Get(key []byte) (value []byte, err error) {
 func (d *DocDB) Delete(key []byte) error {
 	err := d.store.Delete(key)
 	if err != nil {
-		logger.Error("[d.store.Delete] err", err)
+		logger.Error("d.store.Delete err", err)
 		return err
 	}
 	return nil

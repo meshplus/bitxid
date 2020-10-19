@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/bitxhub/bitxid/internal/common/types"
 	"github.com/bitxhub/bitxid/internal/common/utils"
@@ -30,7 +30,7 @@ func NewTable(S storage.Storage) (*Table, error) {
 func (r *Table) HasItem(key []byte) (bool, error) {
 	exists, err := r.store.Has(key)
 	if err != nil {
-		logger.Error("[r.store.Has] err:", err)
+		logger.Error("r.store.Has err:", err)
 		return false, err
 	}
 	return exists, err
@@ -40,7 +40,7 @@ func (r *Table) HasItem(key []byte) (bool, error) {
 func (r *Table) setItem(key []byte, item interface{}) error {
 	bitem, err := utils.Struct2Bytes(item)
 	if err != nil {
-		logger.Error("[utils.Struct2Bytes] err", err)
+		logger.Error("utils.Struct2Bytes err", err)
 		return err
 	}
 	err = r.store.Put(key, bitem)
@@ -58,7 +58,7 @@ func (r *Table) CreateItem(key []byte, item interface{}) error {
 		return err
 	}
 	if exist == true {
-		return errors.New("The key ALREADY existed in registry table")
+		return fmt.Errorf("The key ALREADY existed in registry table")
 	}
 	err = r.setItem(key, item)
 	if err != nil {
@@ -75,7 +75,7 @@ func (r *Table) UpdateItem(key []byte, item interface{}) error {
 		return err
 	}
 	if exist == false {
-		return errors.New("The key NOT existed in registry table")
+		return fmt.Errorf("The key NOT existed in registry table")
 	}
 	err = r.setItem(key, item)
 	if err != nil {
@@ -92,7 +92,7 @@ func (r *Table) GetItem(key []byte, item interface{}) error {
 		return err
 	}
 	if exist == false {
-		return errors.New("The key NOT existed in registry table")
+		return fmt.Errorf("The key NOT existed in registry table")
 	}
 	bitem, err := r.store.Get(key)
 	if err != nil {
@@ -101,7 +101,7 @@ func (r *Table) GetItem(key []byte, item interface{}) error {
 	}
 	err = utils.Bytes2Struct(bitem, item)
 	if err != nil {
-		logger.Error("[utils.Bytes2Struct]] err", err)
+		logger.Error("utils.Bytes2Struct err", err)
 		return err
 	}
 	return nil
@@ -111,7 +111,7 @@ func (r *Table) GetItem(key []byte, item interface{}) error {
 func (r *Table) DeleteItem(key []byte) error {
 	err := r.store.Delete(key)
 	if err != nil {
-		logger.Error("[r.store.Delete] err", err)
+		logger.Error("r.store.Delete err", err)
 		return err
 	}
 	return nil

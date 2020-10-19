@@ -35,6 +35,12 @@ const (
 	UpdateSuccess   int = 310
 )
 
+//
+const (
+	BLC int = iota
+	DLT
+)
+
 const Size int = 64
 
 // Registry .
@@ -60,6 +66,12 @@ type Item struct {
 	Cache   []byte    // onchain storage part
 }
 
+// Doc .
+type Doc struct {
+	types.BasicDoc
+	Parent string `json:"parent"`
+}
+
 // New a MethodRegistry
 func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.MethodConfig) (*Registry, error) {
 	rt, err := registry.NewTable(S1)
@@ -79,6 +91,25 @@ func New(S1 storage.Storage, S2 storage.Storage, L logrus.FieldLogger, MC *repo.
 		logger: L,
 		admins: []types.DID{""},
 	}, nil
+}
+
+// UnmarshalDoc convert byte doc to struct doc
+func UnmarshalDoc(docBytes []byte) (Doc, error) {
+	docStruct := Doc{}
+	err := utils.Bytes2Struct(docBytes, &docStruct)
+	if err != nil {
+		return Doc{}, err
+	}
+	return docStruct, nil
+}
+
+// MarshalDoc convert struct doc to byte doc
+func MarshalDoc(docStruct Doc) ([]byte, error) {
+	docBytes, err := utils.Struct2Bytes(docStruct)
+	if err != nil {
+		return []byte{}, err
+	}
+	return docBytes, nil
 }
 
 // SetupGenesis set up genesis to boot the whole methed system
@@ -255,7 +286,7 @@ func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byt
 	item := Item{}
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
-		R.logger.Error("did [Update] R.table.GetItem err:", err)
+		R.logger.Error("[Update] R.table.GetItem err:", err)
 		return docAddr, string(docHash[:]), err
 	}
 	item.DocAddr = docAddr
