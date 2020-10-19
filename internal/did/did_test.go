@@ -1,6 +1,7 @@
 package did
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -25,7 +26,7 @@ var doc string = `{	"id":"did:bitxhub:relayroot:0x12345678",
 	"type": "user", 
 	"publicKey":[
 	{"type": "Secp256k1",
-	"content": "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71"
+	"publicKeyPem": "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71"
 	}]
 }`
 var diddoc []byte = []byte(doc)
@@ -33,10 +34,14 @@ var sig []byte = []byte("0x9AB567")
 
 var docB string = `{	"id":"did:bitxhub:relayroot:0x12345678",
 	"type": "user", 
-	"publicKey":[
-	{"type": "Ed25519",
-	"content": "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
-	}]
+	"publicKey":[{
+		"id":"KEY#1",
+		"type": "Ed25519",
+		"publicKeyPem": "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
+	}],
+	"authentication":[
+		{"publicKey":["KEY#1"]}
+	]
 }`
 var diddocB []byte = []byte(docB)
 
@@ -108,6 +113,30 @@ func TestResolveSucceed(t *testing.T) {
 	assert.Equal(t, itemE.DocAddr, item.DocAddr)
 	assert.Equal(t, itemE.DocHash, item.DocHash)
 	assert.Equal(t, itemE.Status, item.Status)
+}
+
+func TestUnMarshalSucceed(t *testing.T) {
+	_, doc, err := R.Resolve(did)
+	assert.Nil(t, err)
+	docE := Doc{}
+	docE.ID = "did:bitxhub:relayroot:0x12345678"
+	docE.Type = "user"
+	pk := types.PubKey{
+		ID:           "KEY#1",
+		Type:         "Ed25519",
+		PublicKeyPem: "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV",
+	}
+	docE.PublicKey = []types.PubKey{pk}
+	auth := types.Auth{
+		PublicKey: []string{"KEY#1"},
+	}
+	docE.Authentication = []types.Auth{auth}
+	// Unmarshal doc json byte to doc struct:
+	docR := Doc{}
+	err = json.Unmarshal(doc, &docR)
+	assert.Nil(t, err)
+
+	assert.Equal(t, docR, docE)
 }
 
 func TestFreezeSucceed(t *testing.T) {
