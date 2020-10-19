@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/meshplus/bitxid"
+	"github.com/bitxhub/bitxid"
 	"github.com/urfave/cli/v2"
 )
 

@@ -3,9 +3,9 @@ package docdb
 import (
 	"errors"
 
+	"github.com/bitxhub/bitxid/internal/common/types"
 	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
-	"github.com/meshplus/bitxid/internal/common/types"
 )
 
 // DocDB .

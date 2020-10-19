@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/meshplus/bitxhub-kit/storage/leveldb"
-	"github.com/meshplus/bitxid/internal/common/types"
-	"github.com/meshplus/bitxid/internal/loggers"
-	"github.com/meshplus/bitxid/internal/repo"
+	"github.com/bitxhub/bitxhub-kit/storage/leveldb"
+	"github.com/bitxhub/bitxid/internal/common/types"
+	"github.com/bitxhub/bitxid/internal/loggers"
+	"github.com/bitxhub/bitxid/internal/repo"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/sha3"
 )
@@ -40,11 +40,15 @@ var docB string = `{	"id":"did:bitxhub:relayroot:0x12345678",
 }`
 var diddocB []byte = []byte(docB)
 
-func test(t *testing.T) {
-	did := "did:bitxhub:appchain001:."
-	didT := types.DID(did)
-	fmt.Println([]byte(did), "\n", []byte(didT))
-	fmt.Println(doc)
+func Test(t *testing.T) {
+	// did := "did:bitxhub:appchain001:."
+	// didT := types.DID(did)
+	// fmt.Println([]byte(did), "\n", []byte(didT))
+	// fmt.Println(doc)
+
+	hash1 := sha3.Sum256([]byte("班委"))
+
+	fmt.Printf("%X\n", hash1)
 }
 
 func TestNew(t *testing.T) {
