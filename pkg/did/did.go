@@ -6,11 +6,11 @@ import (
 
 	"github.com/meshplus/bitxhub-kit/storage"
 
-	"github.com/bitxhub/bitxid/internal/common/docdb"
-	"github.com/bitxhub/bitxid/internal/common/registry"
-	"github.com/bitxhub/bitxid/internal/common/types"
-	"github.com/bitxhub/bitxid/internal/common/utils"
-	"github.com/bitxhub/bitxid/internal/repo"
+	"github.com/bitxhub/bitxid/pkg/common/docdb"
+	"github.com/bitxhub/bitxid/pkg/common/registry"
+	"github.com/bitxhub/bitxid/pkg/common/types"
+	"github.com/bitxhub/bitxid/pkg/common/utils"
+	"github.com/bitxhub/bitxid/pkg/repo"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/sha3"
 )

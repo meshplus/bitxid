@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bitxhub/bitxhub-kit/storage/leveldb"
-	"github.com/bitxhub/bitxid/internal/common/types"
-	"github.com/bitxhub/bitxid/internal/loggers"
-	"github.com/bitxhub/bitxid/internal/repo"
+	"github.com/bitxhub/bitxid/pkg/common/types"
+	"github.com/bitxhub/bitxid/pkg/loggers"
+	"github.com/bitxhub/bitxid/pkg/repo"
+	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/sha3"
 )

@@ -20,7 +20,7 @@ func TestCURD(t *testing.T) {
 	// test create:
 	ret1, err := d.Create(key, value)
 	assert.Nil(t, err)
-	assert.Equal(t, ret1, "./XYZ")
+	assert.Equal(t, "./"+string(key), ret1)
 	// test has:
 	ret2, err := d.Has(key)
 	assert.Nil(t, err)
@@ -32,7 +32,7 @@ func TestCURD(t *testing.T) {
 	// test update:
 	ret4, err := d.Update(key, valueUpdated)
 	assert.Nil(t, err)
-	assert.Equal(t, ret4, "./XYZ")
+	assert.Equal(t, "./"+string(key), ret4)
 	ret5, err := d.Get(key)
 	assert.Nil(t, err)
 	assert.Equal(t, ret5, valueUpdated)

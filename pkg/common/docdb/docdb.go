@@ -3,7 +3,7 @@ package docdb
 import (
 	"fmt"
 
-	"github.com/bitxhub/bitxid/internal/common/types"
+	"github.com/bitxhub/bitxid/pkg/common/types"
 	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
 )

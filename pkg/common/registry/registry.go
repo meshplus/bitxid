@@ -3,8 +3,8 @@ package registry
 import (
 	"fmt"
 
-	"github.com/bitxhub/bitxid/internal/common/types"
-	"github.com/bitxhub/bitxid/internal/common/utils"
+	"github.com/bitxhub/bitxid/pkg/common/types"
+	"github.com/bitxhub/bitxid/pkg/common/utils"
 
 	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
