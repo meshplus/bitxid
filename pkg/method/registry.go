@@ -145,6 +145,21 @@ func (R *Registry) SetupGenesis(doc []byte) (string, string, error) {
 	return docAddr, string(docHash[:]), nil
 }
 
+// GetAdmins .
+func (R *Registry) GetAdmins() []types.DID {
+	return R.admins
+}
+
+// HasAdmin .
+func (R *Registry) HasAdmin(d types.DID) bool {
+	for _, v := range R.admins {
+		if v == d {
+			return true
+		}
+	}
+	return false
+}
+
 // Apply apply rights for a new methd-name
 func (R *Registry) Apply(caller types.DID, method string, sig []byte) error {
 	// check if did exists
@@ -212,28 +227,28 @@ func (R *Registry) AuditApply(caller types.DID, method string, result bool, sig 
 
 // Register ties method name to a method doc
 // ATN: only did who owns method-name can call this
-func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []byte) (string, string, error) {
+func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []byte) (string, []byte, error) {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Register] R.HasMethod err:", err)
-		return "", "", err
+		return "", []byte{}, err
 	}
 	if exist == false {
-		return "", "", fmt.Errorf("[Register] The Method NOT existed")
+		return "", []byte{}, fmt.Errorf("[Register] The Method NOT existed")
 	}
 	// only did who owns method-name can call this
 	if !R.owns(caller, method) {
-		return "", "", fmt.Errorf("[Register] Caller has no auth")
+		return "", []byte{}, fmt.Errorf("[Register] Caller has no auth")
 	}
 	status := R.getMethodStatus(method)
 	if status != ApplySuccess {
-		return "", "", fmt.Errorf("[Register] Can not Register for current status: %d", status)
+		return "", []byte{}, fmt.Errorf("[Register] Can not Register for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Create([]byte(method), doc)
 	if err != nil {
 		R.logger.Error("[Register] R.docdb.Create err:", err)
-		return "", "", err
+		return "", []byte{}, err
 	}
 	docHash := sha3.Sum512(doc) // docHash := sha256.Sum256(doc)
 	// update registry table:
@@ -241,7 +256,7 @@ func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []b
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
 		R.logger.Error("[Register] R.table.GetItem err:", err)
-		return "", "", err
+		return "", []byte{}, err
 	}
 	item.Status = Normal
 	item.DocAddr = docAddr
@@ -249,38 +264,38 @@ func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []b
 	err = R.table.UpdateItem([]byte(method), item)
 	if err != nil {
 		R.logger.Error("[Register] R.table.UpdateItem err:", err)
-		return docAddr, string(docHash[:]), err
+		return docAddr, item.DocHash, err
 	}
 	// SyncToPeer
 	// ...
-	return docAddr, string(docHash[:]), nil
+	return docAddr, item.DocHash, nil
 }
 
 // Update .
 // ATN: only did who owns method-name can call this
-func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byte) (string, string, error) {
+func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byte) (string, []byte, error) {
 	// check exist
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Update] R.HasMethod err:", err)
-		return "", "", err
+		return "", []byte{}, err
 	}
 	if exist == false {
-		return "", "", fmt.Errorf("[Update] The Method NOT existed")
+		return "", []byte{}, fmt.Errorf("[Update] The Method NOT existed")
 	}
 	// only did who owns method-name can call this
 	if !R.owns(caller, method) {
-		return "", "", fmt.Errorf("[Update] Caller has no auth")
+		return "", []byte{}, fmt.Errorf("[Update] Caller has no auth")
 	}
 	status := R.getMethodStatus(method)
 	if status != Normal {
-		return "", "", fmt.Errorf("[Update] Can not Update for current status: %d", status)
+		return "", []byte{}, fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Update([]byte(method), doc)
 	if err != nil {
 		R.logger.Error("[Update] R.docdb.Update err:", err)
-		return "", "", err
+		return "", []byte{}, err
 	}
 	// docHash := sha256.Sum256(doc)
 	docHash := sha3.Sum512(doc)
@@ -288,7 +303,7 @@ func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byt
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
 		R.logger.Error("[Update] R.table.GetItem err:", err)
-		return docAddr, string(docHash[:]), err
+		return docAddr, docHash[:], err
 	}
 	item.DocAddr = docAddr
 	item.DocHash = docHash[:]
@@ -296,12 +311,12 @@ func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byt
 
 	if err != nil {
 		R.logger.Error("[Update] R.table.UpdateItem err:", err)
-		return docAddr, string(docHash[:]), err
+		return docAddr, docHash[:], err
 	}
 
 	// SyncToPeer
 	// ...
-	return docAddr, string(docHash[:]), nil
+	return docAddr, docHash[:], nil
 }
 
 // Audit .
