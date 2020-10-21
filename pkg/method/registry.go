@@ -108,7 +108,7 @@ func UnmarshalDoc(docBytes []byte) (Doc, error) {
 func MarshalDoc(docStruct Doc) ([]byte, error) {
 	docBytes, err := utils.Struct2Bytes(docStruct)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	return docBytes, nil
 }
@@ -160,13 +160,12 @@ func (R *Registry) HasAdmin(d types.DID) bool {
 	return false
 }
 
-// Apply apply rights for a new methd-name
-func (R *Registry) Apply(caller types.DID, method string, sig []byte) error {
-	// check if did exists
-	// ..
-
+// Apply apply for rights of a new methd-name
+func (R *Registry) Apply(caller types.DID, method string) error {
 	// check if Method Name meets standard
-	// ..
+	if !types.DID(method).IsValidFormat() {
+		return fmt.Errorf("[Apply] The Method name is not standard")
+	}
 
 	// check if Method exists
 	exist, err := R.HasMethod(method)
@@ -197,8 +196,8 @@ func (R *Registry) Apply(caller types.DID, method string, sig []byte) error {
 }
 
 // AuditApply .
-// ATNS: only admin can call this.
-func (R *Registry) AuditApply(caller types.DID, method string, result bool, sig []byte) error {
+// ATNS: only admin should call this.
+func (R *Registry) AuditApply(caller types.DID, method string, result bool) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[AuditApply] R.HasMethod err:", err)
@@ -207,8 +206,6 @@ func (R *Registry) AuditApply(caller types.DID, method string, result bool, sig 
 	if exist == false {
 		return fmt.Errorf("[AuditApply] The Method NOT existed")
 	}
-	// check caller auth(admin of the bitxhub)
-	// ...
 	status := R.getMethodStatus(method)
 	if !(status == ApplyAudit || status == ApplyFailed) {
 		return fmt.Errorf("[AuditApply] Can not AuditApply for current status: %d", status)
@@ -226,29 +223,29 @@ func (R *Registry) AuditApply(caller types.DID, method string, result bool, sig 
 }
 
 // Register ties method name to a method doc
-// ATN: only did who owns method-name can call this
-func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []byte) (string, []byte, error) {
+// ATN: only did who owns method-name should call this
+func (R *Registry) Register(caller types.DID, method string, doc []byte) (string, []byte, error) {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Register] R.HasMethod err:", err)
-		return "", []byte{}, err
+		return "", nil, err
 	}
 	if exist == false {
-		return "", []byte{}, fmt.Errorf("[Register] The Method NOT existed")
+		return "", nil, fmt.Errorf("[Register] The Method NOT existed")
 	}
 	// only did who owns method-name can call this
 	if !R.owns(caller, method) {
-		return "", []byte{}, fmt.Errorf("[Register] Caller has no auth")
+		return "", nil, fmt.Errorf("[Register] Caller has no auth")
 	}
 	status := R.getMethodStatus(method)
 	if status != ApplySuccess {
-		return "", []byte{}, fmt.Errorf("[Register] Can not Register for current status: %d", status)
+		return "", nil, fmt.Errorf("[Register] Can not Register for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Create([]byte(method), doc)
 	if err != nil {
 		R.logger.Error("[Register] R.docdb.Create err:", err)
-		return "", []byte{}, err
+		return "", nil, err
 	}
 	docHash := sha3.Sum512(doc) // docHash := sha256.Sum256(doc)
 	// update registry table:
@@ -256,7 +253,7 @@ func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []b
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
 		R.logger.Error("[Register] R.table.GetItem err:", err)
-		return "", []byte{}, err
+		return "", nil, err
 	}
 	item.Status = Normal
 	item.DocAddr = docAddr
@@ -272,30 +269,30 @@ func (R *Registry) Register(caller types.DID, method string, doc []byte, sig []b
 }
 
 // Update .
-// ATN: only did who owns method-name can call this
-func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byte) (string, []byte, error) {
+// ATN: only did who owns method-name should call this.
+func (R *Registry) Update(caller types.DID, method string, doc []byte) (string, []byte, error) {
 	// check exist
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Update] R.HasMethod err:", err)
-		return "", []byte{}, err
+		return "", nil, err
 	}
 	if exist == false {
-		return "", []byte{}, fmt.Errorf("[Update] The Method NOT existed")
+		return "", nil, fmt.Errorf("[Update] The Method NOT existed")
 	}
-	// only did who owns method-name can call this
+	// only did who owns method-name can call this.
 	if !R.owns(caller, method) {
-		return "", []byte{}, fmt.Errorf("[Update] Caller has no auth")
+		return "", nil, fmt.Errorf("[Update] Caller has no auth")
 	}
 	status := R.getMethodStatus(method)
 	if status != Normal {
-		return "", []byte{}, fmt.Errorf("[Update] Can not Update for current status: %d", status)
+		return "", nil, fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Update([]byte(method), doc)
 	if err != nil {
 		R.logger.Error("[Update] R.docdb.Update err:", err)
-		return "", []byte{}, err
+		return "", nil, err
 	}
 	// docHash := sha256.Sum256(doc)
 	docHash := sha3.Sum512(doc)
@@ -320,8 +317,8 @@ func (R *Registry) Update(caller types.DID, method string, doc []byte, sig []byt
 }
 
 // Audit .
-// ATN: only admin can call this.
-func (R *Registry) Audit(caller types.DID, method string, status int, sig []byte) error {
+// ATN: only admin should call this.
+func (R *Registry) Audit(caller types.DID, method string, status int) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Audit] R.HasMethod err:", err)
@@ -330,16 +327,14 @@ func (R *Registry) Audit(caller types.DID, method string, status int, sig []byte
 	if exist == false {
 		return fmt.Errorf("[Audit] The Method NOT existed")
 	}
-	// check caller auth(admin of the bitxhub)
-	// ...
 	err = R.auditStatus(method, status)
 
 	return nil
 }
 
 // Freeze .
-// ATN: only someone can call this.
-func (R *Registry) Freeze(caller types.DID, method string, sig []byte) error {
+// ATN: only admdin should call this.
+func (R *Registry) Freeze(caller types.DID, method string) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Freeze] R.HasMethod err:", err)
@@ -348,16 +343,14 @@ func (R *Registry) Freeze(caller types.DID, method string, sig []byte) error {
 	if exist == false {
 		return fmt.Errorf("[Freeze] The Method NOT existed")
 	}
-	// check caller auth(admin of the bitxhub)
-	// ...
 	err = R.auditStatus(method, Frozen)
 
 	return nil
 }
 
 // UnFreeze .
-// ATN: only someone can call this.
-func (R *Registry) UnFreeze(caller types.DID, method string, sig []byte) error {
+// ATN: only admdin should call this.
+func (R *Registry) UnFreeze(caller types.DID, method string) error {
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[UnFreeze] R.HasMethod err:", err)
@@ -366,15 +359,14 @@ func (R *Registry) UnFreeze(caller types.DID, method string, sig []byte) error {
 	if exist == false {
 		return fmt.Errorf("[UnFreeze] The Method NOT existed")
 	}
-	// check caller auth(admin of the bitxhub)
-	// ...
+
 	err = R.auditStatus(method, Normal)
 
 	return nil
 }
 
 // Delete .
-func (R *Registry) Delete(caller types.DID, method string, sig []byte) error {
+func (R *Registry) Delete(caller types.DID, method string) error {
 	err := R.auditStatus(method, Initial)
 	if err != nil {
 		R.logger.Error("[Delete] R.auditStatus err:", err)
@@ -400,27 +392,27 @@ func (R *Registry) Delete(caller types.DID, method string, sig []byte) error {
 }
 
 // Resolve .
-func (R *Registry) Resolve(caller types.DID, method string, sig []byte) (Item, []byte, error) {
+func (R *Registry) Resolve(caller types.DID, method string) (Item, []byte, error) {
 	item := Item{}
 	// looks up local-chain first:
 	exist, err := R.HasMethod(method)
 	if err != nil {
 		R.logger.Error("[Resolve] R.HasMethod err:", err)
-		return Item{}, []byte{}, err
+		return Item{}, nil, err
 	}
 	if exist == false {
-		return Item{}, []byte{}, fmt.Errorf("[Resolve] The Method NOT existed")
+		return Item{}, nil, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
 
 	err = R.table.GetItem([]byte(method), &item)
 	if err != nil {
 		R.logger.Error("[Resolve] R.table.GetItem err:", err)
-		return Item{}, []byte{}, err
+		return Item{}, nil, err
 	}
 	doc, err := R.docdb.Get([]byte(method))
 	if err != nil {
 		R.logger.Error("[Resolve] R.docdb.Get err:", err)
-		return item, []byte{}, err
+		return item, nil, err
 	}
 	return item, doc, nil
 }

@@ -74,16 +74,16 @@ func TestHasMethodSucceed(t *testing.T) {
 }
 
 func TestApplySucceed(t *testing.T) {
-	err := R.Apply(caller, method, sig)
+	err := R.Apply(caller, method) // sig
 	assert.Nil(t, err)
 }
 
 func TestAuditApplyFailed(t *testing.T) {
-	err := R.AuditApply(caller, method, false, sig)
+	err := R.AuditApply(caller, method, false)
 	assert.Nil(t, err)
 }
 func TestAuditApplySucceed(t *testing.T) {
-	err := R.AuditApply(caller, method, true, sig)
+	err := R.AuditApply(caller, method, true)
 	assert.Nil(t, err)
 }
 
@@ -91,10 +91,10 @@ func TestRegisterSucceed(t *testing.T) {
 	docHashE := sha3.Sum512(docC)
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./did:bitxhub:appchain001:."
-	docAddr, docHash, err := R.Register(caller, method, docC, sig)
+	docAddr, docHash, err := R.Register(caller, method, docC)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
-	item, _, err := R.Resolve(caller, method, sig)
+	item, _, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
@@ -105,7 +105,7 @@ func TestUpdateSucceed(t *testing.T) {
 	docHashE := sha3.Sum512(docD)
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./did:bitxhub:appchain001:."
-	docAddr, docHash, err := R.Update(caller, method, docD, sig)
+	docAddr, docHash, err := R.Update(caller, method, docD)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	assert.Equal(t, strHashE, strHash)
@@ -113,40 +113,40 @@ func TestUpdateSucceed(t *testing.T) {
 }
 
 func TestAuditRegisterSucceed(t *testing.T) {
-	err := R.Audit(caller, method, RegisterSuccess, sig)
+	err := R.Audit(caller, method, RegisterSuccess)
 	assert.Nil(t, err)
-	item, _, err := R.Resolve(caller, method, sig)
+	item, _, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	assert.Equal(t, RegisterSuccess, item.Status)
 }
 
 func TestAuditUpdateSucceed(t *testing.T) {
-	err := R.Audit(caller, method, UpdateSuccess, sig)
+	err := R.Audit(caller, method, UpdateSuccess)
 	assert.Nil(t, err)
-	item, _, err := R.Resolve(caller, method, sig)
+	item, _, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	assert.Equal(t, UpdateSuccess, item.Status)
 }
 
 func TestFreezeSucceed(t *testing.T) {
-	err := R.Freeze(caller, method, sig)
+	err := R.Freeze(caller, method)
 	assert.Nil(t, err)
-	item, _, err := R.Resolve(caller, method, sig)
+	item, _, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	assert.Equal(t, Frozen, item.Status)
 }
 
 func TestUnFreezeSucceed(t *testing.T) {
-	err := R.UnFreeze(caller, method, sig)
+	err := R.UnFreeze(caller, method)
 	assert.Nil(t, err)
-	item, _, err := R.Resolve(caller, method, sig)
+	item, _, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	assert.Equal(t, Normal, item.Status)
 }
 
 func TestResolveSucceed(t *testing.T) {
 	docAddrE := "./did:bitxhub:appchain001:."
-	item, doc, err := R.Resolve(caller, method, sig)
+	item, doc, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	assert.Equal(t, docD, doc)
 	itemE := Item{
@@ -162,7 +162,7 @@ func TestResolveSucceed(t *testing.T) {
 }
 
 func TestUnMarshalSucceed(t *testing.T) {
-	_, doc, err := R.Resolve(caller, method, sig)
+	_, doc, err := R.Resolve(caller, method)
 	assert.Nil(t, err)
 	docE := Doc{}
 	docE.ID = "did:bitxhub:relayroot:0x12345678"
@@ -199,9 +199,9 @@ func TestAuditStatus(t *testing.T) {
 }
 
 func TestDeleteSucceed(t *testing.T) {
-	err := R.Delete(caller, method, sig)
+	err := R.Delete(caller, method)
 	assert.Nil(t, err)
-	err = R.Delete("did:bitxhub:relayroot:0x01", "did:bitxhub:relayroot:.", sig)
+	err = R.Delete("did:bitxhub:relayroot:0x01", "did:bitxhub:relayroot:.")
 	assert.Nil(t, err)
 }
 

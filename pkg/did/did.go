@@ -90,7 +90,7 @@ func UnmarshalDoc(docBytes []byte) (Doc, error) {
 func MarshalDoc(docStruct Doc) ([]byte, error) {
 	docBytes, err := utils.Struct2Bytes(docStruct)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	return docBytes, nil
 }
@@ -99,7 +99,7 @@ func MarshalDoc(docStruct Doc) ([]byte, error) {
 func (R *Registry) SetupGenesis() error {
 	caller := types.DID(R.config.GenesisAdmin)
 	// register genesis did:
-	_, _, err := R.Register(R.config.GenesisAccount, caller, []byte(R.config.GenesisDoc), []byte(""))
+	_, _, err := R.Register(R.config.GenesisAccount, caller, []byte(R.config.GenesisDoc))
 	if err != nil {
 		R.logger.Error("[SetupGenesis] register admin fail:", err)
 		return err
@@ -111,25 +111,25 @@ func (R *Registry) SetupGenesis() error {
 }
 
 // Register ties method name to a method doc
-// ATN: only did who owns method-name can call this
-func (R *Registry) Register(caller string, did types.DID, doc []byte, sig []byte) (string, string, error) {
+// ATN: only did who owns method-name should call this
+func (R *Registry) Register(caller string, did types.DID, doc []byte) (string, []byte, error) {
 	exist, err := R.HasDID(did)
 	if err != nil {
 		R.logger.Error("[Register] R.HasDID err:", err)
-		return "", "", err
+		return "", nil, err
 	}
 	if exist == true {
-		return "", "", fmt.Errorf("[Register] The DID Already existed")
+		return "", nil, fmt.Errorf("[Register] The DID Already existed")
 	}
 	// check if caller owns the did
 	if !R.owns(caller, did) {
-		return "", "", fmt.Errorf("[Register] Caller(%s) does not own this DID(%s)", caller, string(did))
+		return "", nil, fmt.Errorf("[Register] Caller(%s) does not own this DID(%s)", caller, string(did))
 	}
 
 	docAddr, err := R.docdb.Create([]byte(did), doc)
 	if err != nil {
 		R.logger.Error("[Register] R.docdb.Create err:", err)
-		return "", "", err
+		return "", nil, err
 	}
 	docHash := sha3.Sum512(doc)
 	// update registry table:
@@ -143,58 +143,58 @@ func (R *Registry) Register(caller string, did types.DID, doc []byte, sig []byte
 		})
 	if err != nil {
 		R.logger.Error("[Apply] R.table.CreateItem err:", err)
-		return docAddr, string(docHash[:]), err
+		return docAddr, docHash[:], err
 	}
 
 	// SyncToPeer
 	// ...
-	return docAddr, string(docHash[:]), nil
+	return docAddr, docHash[:], nil
 }
 
 // Update .
-// ATN: only caller who owns did can call this
-func (R *Registry) Update(caller string, did types.DID, doc []byte, sig []byte) (string, string, error) {
+// ATN: only caller who owns did should call this
+func (R *Registry) Update(caller string, did types.DID, doc []byte) (string, []byte, error) {
 	// check exist
 	exist, err := R.HasDID(did)
 	if err != nil {
 		R.logger.Error("[Update] R.HasDID err:", err)
-		return "", "", err
+		return "", nil, err
 	}
 	if exist == false {
-		return "", "", fmt.Errorf("[Update] The DID NOT existed")
+		return "", nil, fmt.Errorf("[Update] The DID NOT existed")
 	}
 	// only caller who owns did can call this
 	if !R.owns(caller, did) {
-		return "", "", fmt.Errorf("[Update] Caller does not own this DID")
+		return "", nil, fmt.Errorf("[Update] Caller does not own this DID")
 	}
 	status := R.getDIDStatus(did)
 	if status != Normal {
-		return "", "", fmt.Errorf("[Update] Can not Update for current status: %d", status)
+		return "", nil, fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
 
 	docAddr, err := R.docdb.Update([]byte(did), doc)
 	if err != nil {
 		R.logger.Error("[Update] R.docdb.Update err:", err)
-		return "", "", err
+		return "", nil, err
 	}
 	docHash := sha3.Sum512(doc)
 	item := Item{}
 	err = R.table.GetItem([]byte(did), &item)
 	if err != nil {
 		R.logger.Error("[Update] R.table.GetItem err:", err)
-		return docAddr, string(docHash[:]), err
+		return docAddr, docHash[:], err
 	}
 	item.DocAddr = docAddr
 	item.DocHash = docHash[:]
 	err = R.table.UpdateItem([]byte(did), item)
 	if err != nil {
 		R.logger.Error("[Update] R.table.UpdateItem err:", err)
-		return docAddr, string(docHash[:]), err
+		return docAddr, docHash[:], err
 	}
 
 	// SyncToPeer
 	// ...
-	return docAddr, string(docHash[:]), nil
+	return docAddr, docHash[:], nil
 }
 
 // Resolve looks up local-chain to resolve did.
@@ -203,28 +203,28 @@ func (R *Registry) Resolve(did types.DID) (Item, []byte, error) {
 	exist, err := R.HasDID(did)
 	if err != nil {
 		R.logger.Error("[Resolve] R.HasDID err:", err)
-		return Item{}, []byte{}, err
+		return Item{}, nil, err
 	}
 	if exist == false {
-		return Item{}, []byte{}, fmt.Errorf("[Resolve] The Method NOT existed")
+		return Item{}, nil, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
 
 	err = R.table.GetItem([]byte(did), &item)
 	if err != nil {
 		R.logger.Error("[Resolve] R.table.GetItem err:", err)
-		return Item{}, []byte{}, err
+		return Item{}, nil, err
 	}
 	doc, err := R.docdb.Get([]byte(did))
 	if err != nil {
 		R.logger.Error("[Resolve] R.docdb.Get err:", err)
-		return item, []byte{}, err
+		return item, nil, err
 	}
 	return item, doc, nil
 }
 
 // Freeze .
-// ATN: only someone can call this.
-func (R *Registry) Freeze(caller types.DID, did types.DID, sig []byte) error {
+// ATN: only admin should call this.
+func (R *Registry) Freeze(caller types.DID, did types.DID) error {
 	exist, err := R.HasDID(did)
 	if err != nil {
 		R.logger.Error("[Freeze] R.HasMethod err:", err)
@@ -233,16 +233,14 @@ func (R *Registry) Freeze(caller types.DID, did types.DID, sig []byte) error {
 	if exist == false {
 		return fmt.Errorf("[Freeze] The Method NOT existed")
 	}
-	// check caller auth(admin of the bitxhub)
-	// ...
 	err = R.auditStatus(did, Frozen)
 
 	return nil
 }
 
 // UnFreeze .
-// ATN: only someone can call this.
-func (R *Registry) UnFreeze(caller types.DID, did types.DID, sig []byte) error {
+// ATN: only admin should call this.
+func (R *Registry) UnFreeze(caller types.DID, did types.DID) error {
 	exist, err := R.HasDID(did)
 	if err != nil {
 		R.logger.Error("[UnFreeze] R.HasDID err:", err)
@@ -251,20 +249,16 @@ func (R *Registry) UnFreeze(caller types.DID, did types.DID, sig []byte) error {
 	if exist == false {
 		return fmt.Errorf("[UnFreeze] The DID NOT existed")
 	}
-	// check caller auth(admin of the bitxhub)
-	// ...
 	err = R.auditStatus(did, Normal)
 
 	return nil
 }
 
 // Delete .
-func (R *Registry) Delete(did types.DID, sig []byte) error {
+func (R *Registry) Delete(did types.DID) error {
 	// if !R.owns(caller, did) {
 	// 	return fmt.Errorf("[Delete] Caller has no auth")
 	// }
-
-	// verify sig ann auth
 
 	err := R.auditStatus(did, Initial)
 	if err != nil {
@@ -312,7 +306,6 @@ func (R *Registry) owns(caller string, did types.DID) bool {
 	if s[len(s)-1] == caller {
 		return true
 	}
-	// need sig verify ...
 	return false
 }
 

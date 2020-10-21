@@ -83,7 +83,7 @@ func TestHasMethodSucceed(t *testing.T) {
 func TestRegisterSucceed(t *testing.T) {
 	docHashE := sha3.Sum512(diddoc)
 	docAddrE := "./" + string(did)
-	docAddr, docHash, err := R.Register(caller, did, diddoc, sig)
+	docAddr, docHash, err := R.Register(caller, did, diddoc)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	strHashE := fmt.Sprintf("%x", docHashE)
@@ -94,7 +94,7 @@ func TestRegisterSucceed(t *testing.T) {
 func TestUpdateSucceed(t *testing.T) {
 	docHashE := sha3.Sum512(diddocB)
 	docAddrE := "./" + string(did)
-	docAddr, docHash, err := R.Update(caller, did, diddocB, sig)
+	docAddr, docHash, err := R.Update(caller, did, diddocB)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	strHashE := fmt.Sprintf("%x", docHashE)
@@ -144,7 +144,7 @@ func TestUnMarshalSucceed(t *testing.T) {
 }
 
 func TestFreezeSucceed(t *testing.T) {
-	err := R.Freeze(did, did, sig)
+	err := R.Freeze(did, did)
 	assert.Nil(t, err)
 	item, _, err := R.Resolve(did)
 	assert.Nil(t, err)
@@ -152,7 +152,7 @@ func TestFreezeSucceed(t *testing.T) {
 }
 
 func TestUnFreezeSucceed(t *testing.T) {
-	err := R.UnFreeze(did, did, sig)
+	err := R.UnFreeze(did, did)
 	assert.Nil(t, err)
 	item, _, err := R.Resolve(did)
 	assert.Nil(t, err)
@@ -160,9 +160,9 @@ func TestUnFreezeSucceed(t *testing.T) {
 }
 
 func TestDeleteSucceed(t *testing.T) {
-	err := R.Delete(did, sig)
+	err := R.Delete(did)
 	assert.Nil(t, err)
-	err = R.Delete("did:bitxhub:relayroot:0x12348848", sig)
+	err = R.Delete("did:bitxhub:relayroot:0x12348848")
 	assert.Nil(t, err)
 }
 
