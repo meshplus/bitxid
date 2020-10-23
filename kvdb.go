@@ -1,42 +1,41 @@
-package docdb
+package bitxid
 
 import (
 	"fmt"
 
-	"github.com/bitxhub/bitxid/pkg/common/types"
 	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
 )
 
-// DocDB .
-type DocDB struct {
+// KVDocDB .
+type KVDocDB struct {
 	basicAddr string
 	store     storage.Storage
 }
 
-var logger = log.NewWithModule("doc.DB")
-var _ types.DocDB = (*DocDB)(nil)
+var dblogger = log.NewWithModule("doc.DB")
+var _ DocDB = (*KVDocDB)(nil)
 
-// NewDB .
-func NewDB(S storage.Storage) (*DocDB, error) {
-	return &DocDB{
+// NewKVDocDB .
+func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
+	return &KVDocDB{
 		store:     S,
 		basicAddr: ".",
 	}, nil
 }
 
 // Has whether db has the item(by key)
-func (d *DocDB) Has(key []byte) (bool, error) {
+func (d *KVDocDB) Has(key []byte) (bool, error) {
 	exists, err := d.store.Has(key)
 	if err != nil {
-		logger.Error("d.store.Has err:", err)
+		dblogger.Error("d.store.Has err:", err)
 		return false, err
 	}
 	return exists, err
 }
 
 // Create .
-func (d *DocDB) Create(key, value []byte) (string, error) {
+func (d *KVDocDB) Create(key, value []byte) (string, error) {
 	exist, err := d.Has(key)
 	if err != nil {
 		return "", err
@@ -46,14 +45,14 @@ func (d *DocDB) Create(key, value []byte) (string, error) {
 	}
 	err = d.store.Put(key, value)
 	if err != nil {
-		logger.Error("d.store.Put err", err)
+		dblogger.Error("d.store.Put err", err)
 		return "", err
 	}
 	return d.basicAddr + "/" + string(key), nil
 }
 
 // Update .
-func (d *DocDB) Update(key, value []byte) (string, error) {
+func (d *KVDocDB) Update(key, value []byte) (string, error) {
 	exist, err := d.Has(key)
 	if err != nil {
 		return "", err
@@ -63,14 +62,14 @@ func (d *DocDB) Update(key, value []byte) (string, error) {
 	}
 	err = d.store.Put(key, value)
 	if err != nil {
-		logger.Error("d.store.Put err", err)
+		dblogger.Error("d.store.Put err", err)
 		return "", err
 	}
 	return d.basicAddr + "/" + string(key), nil
 }
 
 // Get .
-func (d *DocDB) Get(key []byte) (value []byte, err error) {
+func (d *KVDocDB) Get(key []byte) (value []byte, err error) {
 	exist, err := d.Has(key)
 	if err != nil {
 		return []byte{}, err
@@ -80,23 +79,23 @@ func (d *DocDB) Get(key []byte) (value []byte, err error) {
 	}
 	value, err = d.store.Get(key)
 	if err != nil {
-		logger.Error("d.store.Get err", err)
+		dblogger.Error("d.store.Get err", err)
 		return []byte{}, err
 	}
 	return value, nil
 }
 
 // Delete .
-func (d *DocDB) Delete(key []byte) error {
+func (d *KVDocDB) Delete(key []byte) error {
 	err := d.store.Delete(key)
 	if err != nil {
-		logger.Error("d.store.Delete err", err)
+		dblogger.Error("d.store.Delete err", err)
 		return err
 	}
 	return nil
 }
 
 // Close .
-func (d *DocDB) Close() error {
+func (d *KVDocDB) Close() error {
 	return d.store.Close()
 }
