@@ -1,7 +1,9 @@
 local
 bin
-config/registry.store/
-config/doc.db/
+config/*.table/
+config/*.docdb/
+config/*.db/
+
 
 .DS_Store
 .VSCodeCounter/

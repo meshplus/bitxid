@@ -1,4 +1,4 @@
-package registry
+package bitxid
 
 import (
 	"testing"
@@ -7,25 +7,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const rtPath string = "../../../config/registry.store"
+const rtPath string = "./config/registry.table"
 
-type TestStruct struct {
+type testStruct struct {
 	A int
 	B string
 	C []byte
 	D []string
-	E *SubStruct
+	E *subStruct
 }
-type SubStruct struct {
+type subStruct struct {
 	M int
 	N string
 	O []byte
 	P []string
 }
 
-func TestCURD(t *testing.T) {
+func TestTABLECURD(t *testing.T) {
 	key := []byte("did:bitxhub001:appchain1:.")
-	item := TestStruct{
+	item := testStruct{
 		A: 1,
 		B: "abc",
 		C: []byte("cde"),
@@ -33,7 +33,7 @@ func TestCURD(t *testing.T) {
 	}
 	s, err := leveldb.New(rtPath)
 	assert.Nil(t, err)
-	rt, err := NewTable(s)
+	rt, err := NewKVTable(s)
 	assert.Nil(t, err)
 
 	// test HasItem:
@@ -44,17 +44,17 @@ func TestCURD(t *testing.T) {
 	err = rt.CreateItem(key, item)
 	assert.Nil(t, err)
 	// test CreateItem:
-	item2 := TestStruct{}
+	item2 := testStruct{}
 	err = rt.GetItem(key, &item2)
 	assert.Nil(t, err)
 	assert.Equal(t, item, item2)
 	// test
-	item3 := TestStruct{
+	item3 := testStruct{
 		A: 1,
 		B: "abc",
 		C: []byte("cde"),
 		D: []string{"f", "g", "high"},
-		E: &SubStruct{
+		E: &subStruct{
 			M: 1,
 			N: "b",
 			O: []byte("aaa"),
@@ -63,7 +63,7 @@ func TestCURD(t *testing.T) {
 	}
 	err = rt.UpdateItem(key, item3)
 	assert.Nil(t, err)
-	item4 := TestStruct{}
+	item4 := testStruct{}
 	err = rt.GetItem(key, &item4)
 	assert.Nil(t, err)
 	assert.Equal(t, item3, item4)

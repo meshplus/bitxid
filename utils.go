@@ -1,4 +1,4 @@
-package utils
+package bitxid
 
 import (
 	"bytes"
@@ -28,6 +28,46 @@ func Bytes2Struct(b []byte, s interface{}) error {
 	}
 	return nil
 }
+
+// UnmarshalDIDDoc converts byte doc to struct doc
+func UnmarshalDIDDoc(docBytes []byte) (DIDDoc, error) {
+	docStruct := DIDDoc{}
+	err := Bytes2Struct(docBytes, &docStruct)
+	if err != nil {
+		return DIDDoc{}, err
+	}
+	return docStruct, nil
+}
+
+// MarshalDIDDoc converts struct doc to byte doc
+func MarshalDIDDoc(docStruct DIDDoc) ([]byte, error) {
+	docBytes, err := Struct2Bytes(docStruct)
+	if err != nil {
+		return nil, err
+	}
+	return docBytes, nil
+}
+
+// UnmarshalMethodDoc converts byte doc to struct doc
+func UnmarshalMethodDoc(docBytes []byte) (MethodDoc, error) {
+	docStruct := MethodDoc{}
+	err := Bytes2Struct(docBytes, &docStruct)
+	if err != nil {
+		return MethodDoc{}, err
+	}
+	return docStruct, nil
+}
+
+// MarshalMethodDoc converts struct doc to byte doc
+func MarshalMethodDoc(docStruct MethodDoc) ([]byte, error) {
+	docBytes, err := Struct2Bytes(docStruct)
+	if err != nil {
+		return nil, err
+	}
+	return docBytes, nil
+}
+
+//
 
 // Bytesbuf2Struct not good for struct contains string or slice
 func Bytesbuf2Struct(buf *bytes.Buffer, s interface{}) error {
