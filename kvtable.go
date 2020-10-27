@@ -24,8 +24,8 @@ func NewKVTable(S storage.Storage) (*KVTable, error) {
 }
 
 // HasItem whether table has the item(by key)
-func (r *KVTable) HasItem(key []byte) (bool, error) {
-	exists, err := r.store.Has(key)
+func (r *KVTable) HasItem(key DID) (bool, error) {
+	exists, err := r.store.Has([]byte(key))
 	if err != nil {
 		tablelogger.Error("r.store.Has err:", err)
 		return false, err
@@ -34,13 +34,13 @@ func (r *KVTable) HasItem(key []byte) (bool, error) {
 }
 
 // SetItem sets without any checks
-func (r *KVTable) setItem(key []byte, item interface{}) error {
+func (r *KVTable) setItem(key DID, item interface{}) error {
 	bitem, err := Struct2Bytes(item)
 	if err != nil {
 		tablelogger.Error("Struct2Bytes err", err)
 		return err
 	}
-	err = r.store.Put(key, bitem)
+	err = r.store.Put([]byte(key), bitem)
 	if err != nil {
 		tablelogger.Error("store.Put err", err)
 		return err
@@ -49,7 +49,7 @@ func (r *KVTable) setItem(key []byte, item interface{}) error {
 }
 
 // CreateItem checks and sets
-func (r *KVTable) CreateItem(key []byte, item interface{}) error {
+func (r *KVTable) CreateItem(key DID, item interface{}) error {
 	exist, err := r.HasItem(key)
 	if err != nil {
 		return err
@@ -66,7 +66,7 @@ func (r *KVTable) CreateItem(key []byte, item interface{}) error {
 }
 
 // UpdateItem checks and sets
-func (r *KVTable) UpdateItem(key []byte, item interface{}) error {
+func (r *KVTable) UpdateItem(key DID, item interface{}) error {
 	exist, err := r.HasItem(key)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func (r *KVTable) UpdateItem(key []byte, item interface{}) error {
 }
 
 // GetItem checks ang gets
-func (r *KVTable) GetItem(key []byte, item interface{}) error {
+func (r *KVTable) GetItem(key DID, item interface{}) error {
 	exist, err := r.HasItem(key)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (r *KVTable) GetItem(key []byte, item interface{}) error {
 	if exist == false {
 		return fmt.Errorf("The key NOT existed in registry KVTable")
 	}
-	bitem, err := r.store.Get(key)
+	bitem, err := r.store.Get([]byte(key))
 	if err != nil {
 		tablelogger.Error("store.Get err", err)
 		return err
@@ -105,8 +105,8 @@ func (r *KVTable) GetItem(key []byte, item interface{}) error {
 }
 
 // DeleteItem without any checks
-func (r *KVTable) DeleteItem(key []byte) error {
-	err := r.store.Delete(key)
+func (r *KVTable) DeleteItem(key DID) error {
+	err := r.store.Delete([]byte(key))
 	if err != nil {
 		tablelogger.Error("r.store.Delete err", err)
 		return err

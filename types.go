@@ -28,6 +28,12 @@ const (
 	UpdateSuccess   int = 310
 )
 
+// type of doc
+const (
+	MethodDocType int = iota
+	DIDDocType
+)
+
 // BasicDoc is the fundamental part of doc structure
 type BasicDoc struct {
 	ID             DID      `json:"id"`

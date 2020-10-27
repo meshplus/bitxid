@@ -24,7 +24,7 @@ type subStruct struct {
 }
 
 func TestTABLECURD(t *testing.T) {
-	key := []byte("did:bitxhub001:appchain1:.")
+	key := DID("did:bitxhub001:appchain1:.")
 	item := testStruct{
 		A: 1,
 		B: "abc",

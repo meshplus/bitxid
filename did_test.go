@@ -102,7 +102,6 @@ func TestDIDUpdateSucceed(t *testing.T) {
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 }
-
 func TestDIDResolveSucceed(t *testing.T) {
 	item, doc, err := r.Resolve(did)
 	docBBytes, err := Struct2Bytes(diddocB)

@@ -19,6 +19,7 @@ const (
 const Size int = 64
 
 var _ MethodManager = (*MethodRegistry)(nil)
+var _ Doc = (*MethodDoc)(nil)
 
 // MethodRegistry .
 type MethodRegistry struct {
@@ -47,6 +48,16 @@ type MethodItem struct {
 type MethodDoc struct {
 	BasicDoc
 	Parent string `json:"parent"`
+}
+
+// Marshal .
+func (d *MethodDoc) Marshal() ([]byte, error) {
+	return Struct2Bytes(d)
+}
+
+// Unmarshal .
+func (d *MethodDoc) Unmarshal(docBytes []byte) error {
+	return Bytes2Struct(docBytes, &d)
 }
 
 // NewMethodRegistry news a MethodRegistry
@@ -148,7 +159,7 @@ func (r *MethodRegistry) Apply(caller DID, method DID) error {
 		return fmt.Errorf("[Apply] Can not Register for current status: %d", status)
 	}
 	// creates item in table
-	err = r.table.CreateItem([]byte(method),
+	err = r.table.CreateItem(method,
 		MethodItem{
 			Method: DID(method),
 			Status: ApplyAudit,
@@ -205,13 +216,13 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 		return "", nil, fmt.Errorf("[Register] Can not Register for current status: %d", status)
 	}
 
-	docBytes, err := Struct2Bytes(doc)
+	docBytes, err := doc.Marshal()
 	if err != nil {
-		r.logger.Error("[Register] Struct2Bytes err:", err)
+		r.logger.Error("[Register] doc.Marshal err:", err)
 		return "", nil, err
 	}
 
-	docAddr, err := r.docdb.Create([]byte(method), docBytes)
+	docAddr, err := r.docdb.Create(method, &doc)
 	if err != nil {
 		r.logger.Error("[Register] r.docdb.Create err:", err)
 		return "", nil, err
@@ -219,7 +230,7 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 	docHash := sha3.Sum512(docBytes) // docHash := sha256.Sum256(doc)
 	// update MethodRegistry table:
 	item := &MethodItem{}
-	err = r.table.GetItem([]byte(method), &item)
+	err = r.table.GetItem(method, &item)
 	if err != nil {
 		r.logger.Error("[Register] r.table.GetItem err:", err)
 		return "", nil, err
@@ -227,7 +238,7 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 	item.Status = Normal
 	item.DocAddr = docAddr
 	item.DocHash = docHash[:]
-	err = r.table.UpdateItem([]byte(method), item)
+	err = r.table.UpdateItem(method, item)
 	if err != nil {
 		r.logger.Error("[Register] r.table.UpdateItem err:", err)
 		return docAddr, item.DocHash, err
@@ -253,13 +264,13 @@ func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
 		return "", nil, fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
 
-	docBytes, err := Struct2Bytes(doc)
+	docBytes, err := doc.Marshal()
 	if err != nil {
-		r.logger.Error("[Register] Struct2Bytes err:", err)
+		r.logger.Error("[Register] doc.Marshal( err:", err)
 		return "", nil, err
 	}
 
-	docAddr, err := r.docdb.Update([]byte(method), docBytes)
+	docAddr, err := r.docdb.Update(method, &doc)
 	if err != nil {
 		r.logger.Error("[Update] r.docdb.Update err:", err)
 		return "", nil, err
@@ -267,14 +278,14 @@ func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
 	docHash := sha3.Sum512(docBytes)
 
 	item := MethodItem{}
-	err = r.table.GetItem([]byte(method), &item)
+	err = r.table.GetItem(method, &item)
 	if err != nil {
 		r.logger.Error("[Update] r.table.GetItem err:", err)
 		return docAddr, docHash[:], err
 	}
 	item.DocAddr = docAddr
 	item.DocHash = docHash[:]
-	err = r.table.UpdateItem([]byte(method), item)
+	err = r.table.UpdateItem(method, item)
 
 	if err != nil {
 		r.logger.Error("[Update] r.table.UpdateItem err:", err)
@@ -341,12 +352,12 @@ func (r *MethodRegistry) Delete(method DID) error {
 		return err
 	}
 
-	err = r.docdb.Delete([]byte(method))
+	err = r.docdb.Delete(method)
 	if err != nil {
 		r.logger.Error("[Delete] r.docdb.Delete err:", err)
 		return err
 	}
-	err = r.table.DeleteItem([]byte(method))
+	err = r.table.DeleteItem(method)
 	if err != nil {
 		r.logger.Error("[Delete] r.table.DeleteItem err:", err)
 		return err
@@ -367,19 +378,18 @@ func (r *MethodRegistry) Resolve(method DID) (MethodItem, MethodDoc, error) {
 		return MethodItem{}, MethodDoc{}, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
 
-	err = r.table.GetItem([]byte(method), &item)
+	err = r.table.GetItem(method, &item)
 	if err != nil {
 		r.logger.Error("[Resolve] r.table.GetItem err:", err)
 		return MethodItem{}, MethodDoc{}, err
 	}
-	doc, err := r.docdb.Get([]byte(method))
+	doc, err := r.docdb.Get(method, MethodDocType)
+	docM := doc.(*MethodDoc)
 	if err != nil {
 		r.logger.Error("[Resolve] r.docdb.Get err:", err)
 		return item, MethodDoc{}, err
 	}
-	docStruct := MethodDoc{}
-	Bytes2Struct(doc, &docStruct)
-	return item, docStruct, nil
+	return item, *docM, nil
 }
 
 // MethodHasAccount checks whether account exists on the method blockchain
@@ -389,7 +399,7 @@ func (r *MethodRegistry) MethodHasAccount(method string, account string) {
 
 // HasMethod .
 func (r *MethodRegistry) HasMethod(method DID) (bool, error) {
-	exist, err := r.table.HasItem([]byte(method))
+	exist, err := r.table.HasItem(method)
 	if err != nil {
 		r.logger.Error("[HasMethod] r.table.HasItem err:", err)
 		return false, err
@@ -399,7 +409,7 @@ func (r *MethodRegistry) HasMethod(method DID) (bool, error) {
 
 func (r *MethodRegistry) getMethodStatus(method DID) int {
 	item := MethodItem{}
-	err := r.table.GetItem([]byte(method), &item)
+	err := r.table.GetItem(method, &item)
 	if err != nil {
 		r.logger.Warn("[getMethodStatus] r.table.GetItem err:", err)
 		return Initial
@@ -410,13 +420,13 @@ func (r *MethodRegistry) getMethodStatus(method DID) int {
 // auditStatus .
 func (r *MethodRegistry) auditStatus(method DID, status int) error {
 	item := &MethodItem{}
-	err := r.table.GetItem([]byte(method), &item)
+	err := r.table.GetItem(method, &item)
 	if err != nil {
 		r.logger.Error("[auditStatus] r.table.GetItem err:", err)
 		return err
 	}
 	item.Status = status
-	err = r.table.UpdateItem([]byte(method), item)
+	err = r.table.UpdateItem(method, item)
 	if err != nil {
 		r.logger.Error("[auditStatus] r.table.UpdateItem err:", err)
 		return err

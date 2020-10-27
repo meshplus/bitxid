@@ -10,6 +10,7 @@ import (
 )
 
 var _ DIDManager = (*DIDRegistry)(nil)
+var _ Doc = (*DIDDoc)(nil)
 
 // DIDRegistry for DID Identifier.
 // Every Appchain should implements this DID Registry module.
@@ -38,6 +39,17 @@ type DIDItem struct {
 type DIDDoc struct {
 	BasicDoc
 	Service string `json:"service"`
+}
+
+// Marshal .
+func (d *DIDDoc) Marshal() ([]byte, error) {
+	return Struct2Bytes(d)
+}
+
+// Unmarshal .
+func (d *DIDDoc) Unmarshal(docBytes []byte) error {
+	err := Bytes2Struct(docBytes, &d)
+	return err
 }
 
 // NewDIDRegistry news a DIDRegistry
@@ -120,20 +132,20 @@ func (r *DIDRegistry) Register(doc DIDDoc) (string, []byte, error) {
 		return "", nil, fmt.Errorf("[Register] The DID Already existed")
 	}
 
-	docBytes, err := Struct2Bytes(doc)
-	if err != nil {
-		r.logger.Error("[Register] Struct2Bytes err:", err)
-		return "", nil, err
-	}
-	docAddr, err := r.docdb.Create([]byte(did), docBytes)
+	docAddr, err := r.docdb.Create(did, &doc)
 	if err != nil {
 		r.logger.Error("[Register] r.docdb.Create err:", err)
+		return "", nil, err
+	}
+	docBytes, err := doc.Marshal()
+	if err != nil {
+		r.logger.Error("[Register] doc.Marshal err:", err)
 		return "", nil, err
 	}
 	docHash := sha3.Sum512(docBytes)
 
 	// update DIDRegistry table:
-	err = r.table.CreateItem([]byte(did),
+	err = r.table.CreateItem(did,
 		DIDItem{
 			Identifier: did,
 			Status:     Normal,
@@ -165,26 +177,26 @@ func (r *DIDRegistry) Update(doc DIDDoc) (string, []byte, error) {
 	if status != Normal {
 		return "", nil, fmt.Errorf("[Update] Can not Update for current status: %d", status)
 	}
-	docBytes, err := Struct2Bytes(doc)
+	docBytes, err := doc.Marshal()
 	if err != nil {
-		r.logger.Error("[Register] Struct2Bytes err:", err)
+		r.logger.Error("[Register] doc.Marshal err:", err)
 		return "", nil, err
 	}
-	docAddr, err := r.docdb.Update([]byte(did), docBytes)
+	docAddr, err := r.docdb.Update(did, &doc)
 	if err != nil {
 		r.logger.Error("[Update] r.docdb.Update err:", err)
 		return "", nil, err
 	}
 	docHash := sha3.Sum512(docBytes)
 	item := DIDItem{}
-	err = r.table.GetItem([]byte(did), &item)
+	err = r.table.GetItem(did, &item)
 	if err != nil {
 		r.logger.Error("[Update] r.table.GetItem err:", err)
 		return docAddr, docHash[:], err
 	}
 	item.DocAddr = docAddr
 	item.DocHash = docHash[:]
-	err = r.table.UpdateItem([]byte(did), item)
+	err = r.table.UpdateItem(did, item)
 	if err != nil {
 		r.logger.Error("[Update] r.table.UpdateItem err:", err)
 		return docAddr, docHash[:], err
@@ -205,19 +217,18 @@ func (r *DIDRegistry) Resolve(did DID) (DIDItem, DIDDoc, error) {
 		return DIDItem{}, DIDDoc{}, fmt.Errorf("[Resolve] The Method NOT existed")
 	}
 
-	err = r.table.GetItem([]byte(did), &item)
+	err = r.table.GetItem(did, &item)
 	if err != nil {
 		r.logger.Error("[Resolve] r.table.GetItem err:", err)
 		return DIDItem{}, DIDDoc{}, err
 	}
-	doc, err := r.docdb.Get([]byte(did))
+	doc, err := r.docdb.Get(did, DIDDocType)
+	docD := doc.(*DIDDoc)
 	if err != nil {
 		r.logger.Error("[Resolve] r.docdb.Get err:", err)
 		return item, DIDDoc{}, err
 	}
-	docStruct := DIDDoc{}
-	Bytes2Struct(doc, &docStruct)
-	return item, docStruct, nil
+	return item, *docD, nil
 }
 
 // Freeze .
@@ -260,12 +271,12 @@ func (r *DIDRegistry) Delete(did DID) error {
 		return err
 	}
 
-	err = r.docdb.Delete([]byte(did))
+	err = r.docdb.Delete(did)
 	if err != nil {
 		r.logger.Error("[Delete] r.docdb.Delete err:", err)
 		return err
 	}
-	err = r.table.DeleteItem([]byte(did))
+	err = r.table.DeleteItem(did)
 	if err != nil {
 		r.logger.Error("[Delete] r.table.DeleteItem err:", err)
 		return err
@@ -276,7 +287,7 @@ func (r *DIDRegistry) Delete(did DID) error {
 
 // HasDID .
 func (r *DIDRegistry) HasDID(did DID) (bool, error) {
-	exist, err := r.table.HasItem([]byte(did))
+	exist, err := r.table.HasItem(did)
 	if err != nil {
 		r.logger.Error("[HasDID] r.table.HasItem err:", err)
 		return false, err
@@ -286,7 +297,7 @@ func (r *DIDRegistry) HasDID(did DID) (bool, error) {
 
 func (r *DIDRegistry) getDIDStatus(did DID) int {
 	item := DIDItem{}
-	err := r.table.GetItem([]byte(did), &item)
+	err := r.table.GetItem(did, &item)
 	if err != nil {
 		r.logger.Error("[getDIDStatus] r.table.GetItem err:", err)
 		return Initial
@@ -305,13 +316,13 @@ func (r *DIDRegistry) owns(caller string, did DID) bool {
 
 func (r *DIDRegistry) auditStatus(did DID, status int) error {
 	item := &DIDItem{}
-	err := r.table.GetItem([]byte(did), &item)
+	err := r.table.GetItem(did, &item)
 	if err != nil {
 		r.logger.Error("[auditStatus] r.table.GetItem err:", err)
 		return err
 	}
 	item.Status = status
-	err = r.table.UpdateItem([]byte(did), item)
+	err = r.table.UpdateItem(did, item)
 	if err != nil {
 		r.logger.Error("[auditStatus] r.table.UpdateItem err:", err)
 		return err
