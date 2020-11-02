@@ -3,7 +3,6 @@ package bitxid
 import (
 	"fmt"
 
-	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
 )
 
@@ -12,7 +11,7 @@ type KVTable struct {
 	store storage.Storage
 }
 
-var tablelogger = log.NewWithModule("registry.Table")
+// var tablelogger = log.NewWithModule("registry.Table")
 
 var _ RegistryTable = (*KVTable)(nil)
 
@@ -27,8 +26,7 @@ func NewKVTable(S storage.Storage) (*KVTable, error) {
 func (r *KVTable) HasItem(key DID) (bool, error) {
 	exists, err := r.store.Has([]byte(key))
 	if err != nil {
-		tablelogger.Error("r.store.Has err:", err)
-		return false, err
+		return false, fmt.Errorf("kvtable store: %w", err)
 	}
 	return exists, err
 }
@@ -37,13 +35,11 @@ func (r *KVTable) HasItem(key DID) (bool, error) {
 func (r *KVTable) setItem(key DID, item interface{}) error {
 	bitem, err := Struct2Bytes(item)
 	if err != nil {
-		tablelogger.Error("Struct2Bytes err", err)
-		return err
+		return fmt.Errorf("kvtable marshal: %w", err)
 	}
 	err = r.store.Put([]byte(key), bitem)
 	if err != nil {
-		tablelogger.Error("store.Put err", err)
-		return err
+		return fmt.Errorf("kvtable store: %w", err)
 	}
 	return nil
 }
@@ -55,11 +51,10 @@ func (r *KVTable) CreateItem(key DID, item interface{}) error {
 		return err
 	}
 	if exist == true {
-		return fmt.Errorf("The key ALREADY existed in registry KVTable")
+		return fmt.Errorf("Key %s already existed in kvtable", key)
 	}
 	err = r.setItem(key, item)
 	if err != nil {
-		tablelogger.Error("SetItem err", err)
 		return err
 	}
 	return nil
@@ -72,11 +67,10 @@ func (r *KVTable) UpdateItem(key DID, item interface{}) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("The key NOT existed in registry KVTable")
+		return fmt.Errorf("Key %s not existed in kvtable", key)
 	}
 	err = r.setItem(key, item)
 	if err != nil {
-		tablelogger.Error("SetItem err", err)
 		return err
 	}
 	return nil
@@ -89,17 +83,15 @@ func (r *KVTable) GetItem(key DID, item interface{}) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("The key NOT existed in registry KVTable")
+		return fmt.Errorf("Key %s not existed in kvtable", key)
 	}
 	bitem, err := r.store.Get([]byte(key))
 	if err != nil {
-		tablelogger.Error("store.Get err", err)
-		return err
+		return fmt.Errorf("kvtable store: %w", err)
 	}
 	err = Bytes2Struct(bitem, item)
 	if err != nil {
-		tablelogger.Error("Bytes2Struct err", err)
-		return err
+		return fmt.Errorf("kvtable unmarshal: %w", err)
 	}
 	return nil
 }
@@ -108,13 +100,16 @@ func (r *KVTable) GetItem(key DID, item interface{}) error {
 func (r *KVTable) DeleteItem(key DID) error {
 	err := r.store.Delete([]byte(key))
 	if err != nil {
-		tablelogger.Error("r.store.Delete err", err)
-		return err
+		return fmt.Errorf("kvtable store: %w", err)
 	}
 	return nil
 }
 
 // Close .
 func (r *KVTable) Close() error {
-	return r.store.Close()
+	err := r.store.Close()
+	if err != nil {
+		return fmt.Errorf("kvtable store: %w", err)
+	}
+	return nil
 }

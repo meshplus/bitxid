@@ -2,7 +2,6 @@ package bitxid
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 )
@@ -65,26 +64,4 @@ func MarshalMethodDoc(docStruct MethodDoc) ([]byte, error) {
 		return nil, err
 	}
 	return docBytes, nil
-}
-
-//
-
-// Bytesbuf2Struct not good for struct contains string or slice
-func Bytesbuf2Struct(buf *bytes.Buffer, s interface{}) error {
-	err := binary.Read(buf, binary.BigEndian, s)
-	if err != nil {
-		fmt.Println("binary.Read:", err)
-		return err
-	}
-	return nil
-}
-
-// Struct2Bytesbuf not good for struct contains string or slice
-func Struct2Bytesbuf(s interface{}, buf *bytes.Buffer) error {
-	err := binary.Write(buf, binary.BigEndian, s)
-	if err != nil {
-		fmt.Println("binary.Write:", err)
-		return err
-	}
-	return nil
 }

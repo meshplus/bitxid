@@ -1,13 +1,13 @@
 package bitxid
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/stretchr/testify/assert"
 )
-
-const rtPath string = "./config/registry.table"
 
 type testStruct struct {
 	A int
@@ -24,6 +24,12 @@ type subStruct struct {
 }
 
 func TestTABLECURD(t *testing.T) {
+
+	dir, err := ioutil.TempDir("testdata", "registry.table")
+	assert.Nil(t, err)
+
+	defer os.RemoveAll(dir)
+
 	key := DID("did:bitxhub001:appchain1:.")
 	item := testStruct{
 		A: 1,
@@ -31,7 +37,8 @@ func TestTABLECURD(t *testing.T) {
 		C: []byte("cde"),
 		D: []string{"f", "g", "high"},
 	}
-	s, err := leveldb.New(rtPath)
+	s, err := leveldb.New(dir)
+
 	assert.Nil(t, err)
 	rt, err := NewKVTable(s)
 	assert.Nil(t, err)

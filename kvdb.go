@@ -3,7 +3,6 @@ package bitxid
 import (
 	"fmt"
 
-	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
 )
 
@@ -13,7 +12,7 @@ type KVDocDB struct {
 	store     storage.Storage
 }
 
-var dblogger = log.NewWithModule("doc.DB")
+// var dblogger = log.NewWithModule("doc.DB")
 var _ DocDB = (*KVDocDB)(nil)
 
 // NewKVDocDB .
@@ -26,12 +25,7 @@ func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
 
 // Has whether db has the item(by key)
 func (d *KVDocDB) Has(key DID) (bool, error) {
-	exists, err := d.store.Has([]byte(key))
-	if err != nil {
-		dblogger.Error("d.store.Has err:", err)
-		return false, err
-	}
-	return exists, err
+	return d.store.Has([]byte(key))
 }
 
 // Create .
@@ -41,7 +35,7 @@ func (d *KVDocDB) Create(key DID, value Doc) (string, error) {
 		return "", err
 	}
 	if exist == true {
-		return "", fmt.Errorf("The key ALREADY existed in doc db")
+		return "", fmt.Errorf("Key %s already existed in kvdb", key)
 	}
 	valueByte, err := value.Marshal()
 	if err != nil {
@@ -49,8 +43,7 @@ func (d *KVDocDB) Create(key DID, value Doc) (string, error) {
 	}
 	err = d.store.Put([]byte(key), valueByte)
 	if err != nil {
-		dblogger.Error("d.store.Put err", err)
-		return "", err
+		return "", fmt.Errorf("kvdb store: %w", err)
 	}
 	return d.basicAddr + "/" + string(key), nil
 }
@@ -62,7 +55,7 @@ func (d *KVDocDB) Update(key DID, value Doc) (string, error) {
 		return "", err
 	}
 	if exist == false {
-		return "", fmt.Errorf("The key NOT existed in doc db")
+		return "", fmt.Errorf("Key %s not existed in kvdb", key)
 	}
 	valueBytes, err := value.Marshal()
 	if err != nil {
@@ -70,8 +63,7 @@ func (d *KVDocDB) Update(key DID, value Doc) (string, error) {
 	}
 	err = d.store.Put([]byte(key), valueBytes)
 	if err != nil {
-		dblogger.Error("d.store.Put err", err)
-		return "", err
+		return "", fmt.Errorf("kvdb store: %w", err)
 	}
 	return d.basicAddr + "/" + string(key), nil
 }
@@ -83,47 +75,46 @@ func (d *KVDocDB) Get(key DID, typ int) (Doc, error) {
 		return nil, err
 	}
 	if exist == false {
-		return nil, fmt.Errorf("The key NOT existed in doc db")
+		return nil, fmt.Errorf("Key %s not existed in kvdb", key)
 	}
 	valueBytes, err := d.store.Get([]byte(key))
 	if err != nil {
-		dblogger.Error("d.store.Get err", err)
-		return nil, err
+		return nil, fmt.Errorf("kvdb store: %w", err)
 	}
 	switch typ {
 	case DIDDocType:
 		dt := &DIDDoc{}
-		dt.Unmarshal(valueBytes)
+		err = dt.Unmarshal(valueBytes)
 		if err != nil {
-			dblogger.Error("value.Unmarshal err", err)
-			return nil, err
+			return nil, fmt.Errorf("kvdb unmarshal did doc: %w", err)
 		}
 		return dt, nil
 	case MethodDocType:
 		mt := &MethodDoc{}
-		mt.Unmarshal(valueBytes)
+		err = mt.Unmarshal(valueBytes)
 		if err != nil {
-			dblogger.Error("value.Unmarshal err", err)
-			return nil, err
+			return nil, fmt.Errorf("kvdb unmarshal method doc: %w", err)
 		}
 		return mt, nil
 	default:
-		return nil, fmt.Errorf("unknown Doc type %d", typ)
+		return nil, fmt.Errorf("kvdb unknown doc type: %d", typ)
 	}
-	// fmt.Println("[get] value Doc:", value)
 }
 
 // Delete .
 func (d *KVDocDB) Delete(key DID) error {
 	err := d.store.Delete([]byte(key))
 	if err != nil {
-		dblogger.Error("d.store.Delete err", err)
-		return err
+		return fmt.Errorf("kvdb store: %w", err)
 	}
 	return nil
 }
 
 // Close .
 func (d *KVDocDB) Close() error {
-	return d.store.Close()
+	err := d.store.Close()
+	if err != nil {
+		return fmt.Errorf("kvdb store: %w", err)
+	}
+	return nil
 }

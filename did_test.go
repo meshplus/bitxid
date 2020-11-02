@@ -2,6 +2,8 @@ package bitxid
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
@@ -9,12 +11,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const (
-	ddbPath   string = "./config/did.docdb"
-	drtPath   string = "./config/did.table"
-	dconfPath string = "./config"
-)
-
+var drtPath string
+var ddbPath string
 var r *DIDRegistry
 
 var rootDID DID = DID("did:bitxhub:appchain001:0x00000001")
@@ -53,6 +51,12 @@ func getDIDDoc(ran int) DIDDoc {
 }
 
 func TestDIDNew(t *testing.T) {
+	dir1, err := ioutil.TempDir("testdata", "did.docdb")
+	assert.Nil(t, err)
+	dir2, err := ioutil.TempDir("testdata", "did.table")
+	assert.Nil(t, err)
+	drtPath = dir1
+	ddbPath = dir2
 	loggerInit()
 	l := loggerGet(loggerDID)
 	s1, err := leveldb.New(drtPath)
@@ -148,5 +152,10 @@ func TestDIDCloseSucceed(t *testing.T) {
 	err := r.table.Close()
 	assert.Nil(t, err)
 	err = r.docdb.Close()
+	assert.Nil(t, err)
+
+	err = os.RemoveAll(drtPath)
+	assert.Nil(t, err)
+	err = os.RemoveAll(ddbPath)
 	assert.Nil(t, err)
 }

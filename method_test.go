@@ -2,6 +2,8 @@ package bitxid
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
@@ -9,12 +11,8 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const (
-	mdbPath   string = "./config/method.docdb"
-	mrtPath   string = "./config/method.table"
-	mconfPath string = "./config"
-)
-
+var mdbPath string
+var mrtPath string
 var mr *MethodRegistry
 
 var rootMethod = DID("did:bitxhub:relayroot:.")
@@ -56,7 +54,13 @@ func getMethodDoc(ran int) MethodDoc {
 	return docE
 }
 
-func TestNew(t *testing.T) {
+func TestMethodNew(t *testing.T) {
+	dir1, err := ioutil.TempDir("testdata", "method.docdb")
+	assert.Nil(t, err)
+	dir2, err := ioutil.TempDir("testdata", "method.table")
+	mdbPath = dir1
+	mrtPath = dir2
+	assert.Nil(t, err)
 	loggerInit()
 	l := loggerGet(loggerMethod)
 	s1, err := leveldb.New(mrtPath)
@@ -202,5 +206,11 @@ func TestCloseSucceed(t *testing.T) {
 	err := mr.table.Close()
 	assert.Nil(t, err)
 	err = mr.docdb.Close()
+	assert.Nil(t, err)
+
+	fmt.Println("mdbPath:", mdbPath)
+	err = os.RemoveAll(mdbPath)
+	assert.Nil(t, err)
+	err = os.RemoveAll(mrtPath)
 	assert.Nil(t, err)
 }

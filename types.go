@@ -1,6 +1,9 @@
 package bitxid
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // DID represents decentrilzed identifier and method names
 // example identifier: did:bitxhub:appchain001
@@ -96,4 +99,8 @@ func (did DID) GetAddress() string {
 // GetMethod .
 func (did DID) GetMethod() string {
 	return "did:" + did.GetRootMethod() + ":" + did.GetSubMethod() + ":."
+}
+
+func errJoin(module string, err error) error {
+	return fmt.Errorf("%s: %v", module, err)
 }
