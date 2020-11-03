@@ -10,31 +10,46 @@ import (
 // example method name:
 type DID string
 
+// StatusType .
+type StatusType int
+
 // the rule of status code:
 // end with 1 (001, 101, 301, etc.) means on audit
 // end with 5 (005, 105, 205, 305, etc.) means audit failed
 // end with 0 (010, 110, 200, 310, etc.) means good
 // 101/105/110 301/305/310 not used currently
 const (
-	Error           int = -001
-	Initial         int = 000
-	ApplyAudit      int = 001
-	ApplyFailed     int = 005
-	ApplySuccess    int = 010
-	RegisterAudit   int = 101
-	RegisterFailed  int = 105
-	RegisterSuccess int = 110
-	Normal          int = 200
-	Frozen          int = 205
-	UpdateAudit     int = 301
-	UpdateFailed    int = 305
-	UpdateSuccess   int = 310
+	Error           StatusType = -001
+	Initial         StatusType = 000
+	ApplyAudit      StatusType = 001
+	ApplyFailed     StatusType = 005
+	ApplySuccess    StatusType = 010
+	RegisterAudit   StatusType = 101
+	RegisterFailed  StatusType = 105
+	RegisterSuccess StatusType = 110
+	Normal          StatusType = 200
+	Frozen          StatusType = 205
+	UpdateAudit     StatusType = 301
+	UpdateFailed    StatusType = 305
+	UpdateSuccess   StatusType = 310
 )
+
+// DocType .
+type DocType int
 
 // type of doc
 const (
-	MethodDocType int = iota
+	MethodDocType DocType = iota
 	DIDDocType
+)
+
+// TableType .
+type TableType int
+
+// type of doc
+const (
+	MethodTableType TableType = iota
+	DIDTableType
 )
 
 // BasicDoc is the fundamental part of doc structure
@@ -46,6 +61,14 @@ type BasicDoc struct {
 	Controller     DID      `json:"controller"`
 	PublicKey      []PubKey `json:"publicKey"`
 	Authentication []Auth   `json:"authentication"`
+}
+
+// BasicItem is the fundamental part of item structure
+type BasicItem struct {
+	ID      DID
+	DocAddr string     // addr where the doc file stored
+	DocHash []byte     // hash of the doc file
+	Status  StatusType // status of the item
 }
 
 // PubKey .

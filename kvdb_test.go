@@ -29,7 +29,7 @@ func TestDBCURD(t *testing.T) {
 	d, err := NewKVDocDB(s)
 	assert.Nil(t, err)
 	// test create:
-	ret1, err := d.Create(key, &value)
+	ret1, err := d.Create(&value)
 	assert.Nil(t, err)
 	assert.Equal(t, "./"+string(key), ret1)
 	// test has:
@@ -41,7 +41,7 @@ func TestDBCURD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, *ret3.(*DIDDoc), value)
 	// test update:
-	ret4, err := d.Update(key, &valueUpdated)
+	ret4, err := d.Update(&valueUpdated)
 	assert.Nil(t, err)
 	assert.Equal(t, "./"+string(key), ret4)
 	ret5, err := d.Get(key, DIDDocType)

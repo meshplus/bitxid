@@ -1,19 +1,65 @@
 package bitxid
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 
 	"github.com/meshplus/bitxhub-kit/storage"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/sha3"
 )
 
-var _ DIDManager = (*DIDRegistry)(nil)
 var _ Doc = (*DIDDoc)(nil)
 
+// DIDDoc .
+type DIDDoc struct {
+	BasicDoc
+	Service string `json:"service"`
+}
+
+// Marshal .
+func (dd *DIDDoc) Marshal() ([]byte, error) {
+	return Struct2Bytes(dd)
+}
+
+// Unmarshal .
+func (dd *DIDDoc) Unmarshal(docBytes []byte) error {
+	err := Bytes2Struct(docBytes, &dd)
+	return err
+}
+
+// GetID .
+func (dd *DIDDoc) GetID() DID {
+	return dd.ID
+}
+
+var _ TableItem = (*DIDItem)(nil)
+
+// DIDItem reperesentis a did item, element of registry table.
+// Registry table is used together with docdb.
+type DIDItem struct {
+	BasicItem
+}
+
+// Marshal .
+func (di *DIDItem) Marshal() ([]byte, error) {
+	return Struct2Bytes(di)
+}
+
+// Unmarshal .
+func (di *DIDItem) Unmarshal(docBytes []byte) error {
+	return Bytes2Struct(docBytes, &di)
+}
+
+// GetID .
+func (di *DIDItem) GetID() DID {
+	return di.ID
+}
+
+var _ DIDManager = (*DIDRegistry)(nil)
+
 // DIDRegistry for DID Identifier.
-// Every Appchain should implements this DID Registry module.
+// Every appchain should use this DID Registry module.
 type DIDRegistry struct {
 	config *DIDConfig
 	table  RegistryTable
@@ -23,44 +69,15 @@ type DIDRegistry struct {
 	method DID   // method of the registry
 }
 
-// DIDItem reperesentis a did item.
-// Registry table is used together with docdb,
-// we suggest to store large data off-chain(in docdb),
-// only some frequently used data on-chain(in cache).
-type DIDItem struct {
-	Identifier DID    // primary key of the item, like a did
-	DocAddr    string // addr where the doc file stored
-	DocHash    []byte // hash of the doc file
-	Status     int    // status of the item
-	Cache      []byte // onchain storage part
-}
-
-// DIDDoc .
-type DIDDoc struct {
-	BasicDoc
-	Service string `json:"service"`
-}
-
-// Marshal .
-func (d *DIDDoc) Marshal() ([]byte, error) {
-	return Struct2Bytes(d)
-}
-
-// Unmarshal .
-func (d *DIDDoc) Unmarshal(docBytes []byte) error {
-	err := Bytes2Struct(docBytes, &d)
-	return err
-}
-
 // NewDIDRegistry news a DIDRegistry
-func NewDIDRegistry(s1 storage.Storage, s2 storage.Storage, l logrus.FieldLogger, dc *DIDConfig) (*DIDRegistry, error) {
-	rt, err := NewKVTable(s1)
+func NewDIDRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger, dc *DIDConfig) (*DIDRegistry, error) {
+	rt, err := NewKVTable(ts)
 	if err != nil {
-		return nil, fmt.Errorf("did new table: %w", err)
+		return nil, fmt.Errorf("DID new table: %w", err)
 	}
-	db, err := NewKVDocDB(s2)
+	db, err := NewKVDocDB(ds)
 	if err != nil {
-		return nil, fmt.Errorf("did new docdb: %w", err)
+		return nil, fmt.Errorf("DID new docdb: %w", err)
 	}
 	return &DIDRegistry{
 		config: dc,
@@ -74,7 +91,7 @@ func NewDIDRegistry(s1 storage.Storage, s2 storage.Storage, l logrus.FieldLogger
 // SetupGenesis set up genesis to boot the whole did registry
 func (r *DIDRegistry) SetupGenesis() error {
 	if r.config.Admin != r.config.AdminDoc.ID {
-		return fmt.Errorf("did genesis: admin did not matched with doc")
+		return fmt.Errorf("DID genesis: admin DID not matched with doc")
 	}
 	// register genesis did
 	_, _, err := r.Register(r.config.AdminDoc)
@@ -122,32 +139,32 @@ func (r *DIDRegistry) Register(doc DIDDoc) (string, []byte, error) {
 	did := DID(doc.ID)
 	exist, err := r.HasDID(did)
 	if err != nil {
-		return "", nil, fmt.Errorf("register did: %w", err)
+		return "", nil, fmt.Errorf("register DID: %w", err)
 	}
 	if exist == true {
-		return "", nil, fmt.Errorf("did %s already existed", did)
+		return "", nil, fmt.Errorf("DID %s already existed", did)
 	}
 
-	docAddr, err := r.docdb.Create(did, &doc)
+	docAddr, err := r.docdb.Create(&doc)
 	if err != nil {
-		return "", nil, fmt.Errorf("register did on docdb: %w", err)
+		return "", nil, fmt.Errorf("register DID on docdb: %w", err)
 	}
 	docBytes, err := doc.Marshal()
 	if err != nil {
-		return "", nil, fmt.Errorf("register did doc marshal: %w", err)
+		return "", nil, fmt.Errorf("register DID doc marshal: %w", err)
 	}
-	docHash := sha3.Sum512(docBytes)
-
+	docHash := sha256.Sum256(docBytes)
 	// update DIDRegistry table:
-	err = r.table.CreateItem(did,
-		DIDItem{
-			Identifier: did,
-			Status:     Normal,
-			DocAddr:    docAddr,
-			DocHash:    docHash[:],
+	err = r.table.CreateItem(
+		&DIDItem{BasicItem{
+			ID:      did,
+			Status:  Normal,
+			DocAddr: docAddr,
+			DocHash: docHash[:],
+		},
 		})
 	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("register did on table: %w", err)
+		return docAddr, docHash[:], fmt.Errorf("register DID on table: %w", err)
 	}
 
 	return docAddr, docHash[:], nil
@@ -163,32 +180,32 @@ func (r *DIDRegistry) Update(doc DIDDoc) (string, []byte, error) {
 		return "", nil, err
 	}
 	if exist == false {
-		return "", nil, fmt.Errorf("did %s not existed", did)
+		return "", nil, fmt.Errorf("DID %s not existed", did)
 	}
 	status := r.getDIDStatus(did)
 	if status != Normal {
-		return "", nil, fmt.Errorf("can not update did under current status: %d", status)
+		return "", nil, fmt.Errorf("can not update DID under current status: %d", status)
 	}
 	docBytes, err := doc.Marshal()
 	if err != nil {
-		r.logger.Error("update did doc marshal:", err)
+		r.logger.Error("update DID doc marshal:", err)
 		return "", nil, err
 	}
-	docAddr, err := r.docdb.Update(did, &doc)
+	docAddr, err := r.docdb.Update(&doc)
 	if err != nil {
-		return "", nil, fmt.Errorf("update did on docdb: %w", err)
+		return "", nil, fmt.Errorf("update DID on docdb: %w", err)
 	}
-	docHash := sha3.Sum512(docBytes)
-	item := DIDItem{}
-	err = r.table.GetItem(did, &item)
+	docHash := sha256.Sum256(docBytes)
+	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("update did table get: %w", err)
+		return docAddr, docHash[:], fmt.Errorf("update DID table get: %w", err)
 	}
-	item.DocAddr = docAddr
-	item.DocHash = docHash[:]
-	err = r.table.UpdateItem(did, item)
+	itemD := item.(*DIDItem)
+	itemD.DocAddr = docAddr
+	itemD.DocHash = docHash[:]
+	err = r.table.UpdateItem(itemD)
 	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("update did on table: %w", err)
+		return docAddr, docHash[:], fmt.Errorf("update DID on table: %w", err)
 	}
 
 	return docAddr, docHash[:], nil
@@ -196,25 +213,25 @@ func (r *DIDRegistry) Update(doc DIDDoc) (string, []byte, error) {
 
 // Resolve looks up local-chain to resolve did.
 func (r *DIDRegistry) Resolve(did DID) (DIDItem, DIDDoc, error) {
-	item := DIDItem{}
 	exist, err := r.HasDID(did)
 	if err != nil {
 		return DIDItem{}, DIDDoc{}, err
 	}
 	if exist == false {
-		return DIDItem{}, DIDDoc{}, fmt.Errorf("did %s not existed", did)
+		return DIDItem{}, DIDDoc{}, fmt.Errorf("DID %s not existed", did)
 	}
 
-	err = r.table.GetItem(did, &item)
+	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
-		return DIDItem{}, DIDDoc{}, fmt.Errorf("resolve did table get: %w", err)
+		return DIDItem{}, DIDDoc{}, fmt.Errorf("resolve DID table get: %w", err)
 	}
+	itemD := item.(*DIDItem)
 	doc, err := r.docdb.Get(did, DIDDocType)
-	docD := doc.(*DIDDoc)
 	if err != nil {
-		return item, DIDDoc{}, fmt.Errorf("resolve did docdb get: %w", err)
+		return *itemD, DIDDoc{}, fmt.Errorf("resolve DID docdb get: %w", err)
 	}
-	return item, *docD, nil
+	docD := doc.(*DIDDoc)
+	return *itemD, *docD, nil
 }
 
 // Freeze .
@@ -225,13 +242,9 @@ func (r *DIDRegistry) Freeze(did DID) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("did %s not existed", did)
+		return fmt.Errorf("DID %s not existed", did)
 	}
-	err = r.auditStatus(did, Frozen)
-	if err != nil {
-		return fmt.Errorf("freeze did: %w", err)
-	}
-	return nil
+	return r.auditStatus(did, Frozen)
 }
 
 // UnFreeze .
@@ -242,28 +255,24 @@ func (r *DIDRegistry) UnFreeze(did DID) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("did %s not existed", did)
+		return fmt.Errorf("DID %s not existed", did)
 	}
-	err = r.auditStatus(did, Normal)
-	if err != nil {
-		return fmt.Errorf("unfreeze did: %w", err)
-	}
-	return nil
+	return r.auditStatus(did, Normal)
 }
 
 // Delete .
 func (r *DIDRegistry) Delete(did DID) error {
 	err := r.auditStatus(did, Initial)
 	if err != nil {
-		return fmt.Errorf("delete did aduit status: %w", err)
+		return fmt.Errorf("delete DID aduit status: %w", err)
 	}
 	err = r.docdb.Delete(did)
 	if err != nil {
-		return fmt.Errorf("delete did on docdb: %w", err)
+		return fmt.Errorf("delete DID on docdb: %w", err)
 	}
 	err = r.table.DeleteItem(did)
 	if err != nil {
-		return fmt.Errorf("delete did on table: %w", err)
+		return fmt.Errorf("delete DID on table: %w", err)
 	}
 	return nil
 }
@@ -272,18 +281,19 @@ func (r *DIDRegistry) Delete(did DID) error {
 func (r *DIDRegistry) HasDID(did DID) (bool, error) {
 	exist, err := r.table.HasItem(did)
 	if err != nil {
-		return false, fmt.Errorf("did has: %w", err)
+		return false, fmt.Errorf("DID has: %w", err)
 	}
 	return exist, nil
 }
 
-func (r *DIDRegistry) getDIDStatus(did DID) int {
-	item := DIDItem{}
-	err := r.table.GetItem(did, &item)
+func (r *DIDRegistry) getDIDStatus(did DID) StatusType {
+	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
+		r.logger.Warn("DID status get item:", err)
 		return Initial
 	}
-	return item.Status
+	itemD := item.(*DIDItem)
+	return itemD.Status
 }
 
 //  caller naturally owns the did ended with his address.
@@ -295,16 +305,16 @@ func (r *DIDRegistry) owns(caller string, did DID) bool {
 	return false
 }
 
-func (r *DIDRegistry) auditStatus(did DID, status int) error {
-	item := &DIDItem{}
-	err := r.table.GetItem(did, &item)
+func (r *DIDRegistry) auditStatus(did DID, status StatusType) error {
+	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
-		return fmt.Errorf("did status get: %w", err)
+		return fmt.Errorf("DID status get: %w", err)
 	}
-	item.Status = status
-	err = r.table.UpdateItem(did, item)
+	itemD := item.(*DIDItem)
+	itemD.Status = status
+	err = r.table.UpdateItem(item)
 	if err != nil {
-		return fmt.Errorf("did status update: %w", err)
+		return fmt.Errorf("DID status update: %w", err)
 	}
 	return nil
 }

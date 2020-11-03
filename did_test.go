@@ -1,6 +1,7 @@
 package bitxid
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/sha3"
 )
 
 var drtPath string
@@ -84,7 +84,8 @@ func testHasDIDSucceed(t *testing.T) {
 func TestDIDRegisterSucceed(t *testing.T) {
 	docABytes, err := Struct2Bytes(diddocA)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docABytes)
+	// docHashE := sha3.Sum512(docABytes)
+	docHashE := sha256.Sum256(docABytes)
 	docAddrE := "./" + string(did)
 	docAddr, docHash, err := r.Register(diddocA)
 	assert.Nil(t, err)
@@ -97,7 +98,8 @@ func TestDIDRegisterSucceed(t *testing.T) {
 func TestDIDUpdateSucceed(t *testing.T) {
 	docBBytes, err := Struct2Bytes(diddocB)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docBBytes)
+	// docHashE := sha3.Sum512(docBBytes)
+	docHashE := sha256.Sum256(docBBytes)
 	docAddrE := "./" + string(did)
 	docAddr, docHash, err := r.Update(diddocB)
 	assert.Nil(t, err)
@@ -110,16 +112,18 @@ func TestDIDResolveSucceed(t *testing.T) {
 	item, doc, err := r.Resolve(did)
 	docBBytes, err := Struct2Bytes(diddocB)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docBBytes)
+	// docHashE := sha3.Sum512(docBBytes)
+	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
 	assert.Equal(t, diddocB, doc) // compare doc
 	itemE := DIDItem{
-		Identifier: did,
-		DocHash:    docHashE[:],
-		DocAddr:    "./" + string(did),
-		Status:     Normal,
+		BasicItem{
+			ID:      did,
+			DocHash: docHashE[:],
+			DocAddr: "./" + string(did),
+			Status:  Normal},
 	}
-	assert.Equal(t, itemE.Identifier, item.Identifier)
+	assert.Equal(t, itemE.ID, item.ID)
 	assert.Equal(t, itemE.DocAddr, item.DocAddr)
 	assert.Equal(t, itemE.DocHash, item.DocHash)
 	assert.Equal(t, itemE.Status, item.Status)

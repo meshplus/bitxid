@@ -23,8 +23,8 @@ func NewKVTable(S storage.Storage) (*KVTable, error) {
 }
 
 // HasItem whether table has the item(by key)
-func (r *KVTable) HasItem(key DID) (bool, error) {
-	exists, err := r.store.Has([]byte(key))
+func (r *KVTable) HasItem(did DID) (bool, error) {
+	exists, err := r.store.Has([]byte(did))
 	if err != nil {
 		return false, fmt.Errorf("kvtable store: %w", err)
 	}
@@ -32,12 +32,12 @@ func (r *KVTable) HasItem(key DID) (bool, error) {
 }
 
 // SetItem sets without any checks
-func (r *KVTable) setItem(key DID, item interface{}) error {
-	bitem, err := Struct2Bytes(item)
+func (r *KVTable) setItem(did DID, item TableItem) error {
+	bitem, err := item.Marshal()
 	if err != nil {
 		return fmt.Errorf("kvtable marshal: %w", err)
 	}
-	err = r.store.Put([]byte(key), bitem)
+	err = r.store.Put([]byte(did), bitem)
 	if err != nil {
 		return fmt.Errorf("kvtable store: %w", err)
 	}
@@ -45,31 +45,35 @@ func (r *KVTable) setItem(key DID, item interface{}) error {
 }
 
 // CreateItem checks and sets
-func (r *KVTable) CreateItem(key DID, item interface{}) error {
-	exist, err := r.HasItem(key)
+func (r *KVTable) CreateItem(item TableItem) error {
+	did := item.GetID()
+	if did == DID("") {
+		return fmt.Errorf("kvtable create item id is null")
+	}
+	exist, err := r.HasItem(did)
 	if err != nil {
 		return err
 	}
 	if exist == true {
-		return fmt.Errorf("Key %s already existed in kvtable", key)
+		return fmt.Errorf("Key %s already existed in kvtable", did)
 	}
-	err = r.setItem(key, item)
-	if err != nil {
-		return err
-	}
-	return nil
+	return r.setItem(did, item)
 }
 
 // UpdateItem checks and sets
-func (r *KVTable) UpdateItem(key DID, item interface{}) error {
-	exist, err := r.HasItem(key)
+func (r *KVTable) UpdateItem(item TableItem) error {
+	did := item.GetID()
+	if did == DID("") {
+		return fmt.Errorf("kvtable create item id is null")
+	}
+	exist, err := r.HasItem(did)
 	if err != nil {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("Key %s not existed in kvtable", key)
+		return fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	err = r.setItem(key, item)
+	err = r.setItem(did, item)
 	if err != nil {
 		return err
 	}
@@ -77,28 +81,41 @@ func (r *KVTable) UpdateItem(key DID, item interface{}) error {
 }
 
 // GetItem checks ang gets
-func (r *KVTable) GetItem(key DID, item interface{}) error {
-	exist, err := r.HasItem(key)
+func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
+	exist, err := r.HasItem(did)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exist == false {
-		return fmt.Errorf("Key %s not existed in kvtable", key)
+		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	bitem, err := r.store.Get([]byte(key))
+	itemBytes, err := r.store.Get([]byte(did))
 	if err != nil {
-		return fmt.Errorf("kvtable store: %w", err)
+		return nil, fmt.Errorf("kvtable store: %w", err)
 	}
-	err = Bytes2Struct(bitem, item)
-	if err != nil {
-		return fmt.Errorf("kvtable unmarshal: %w", err)
+	switch typ {
+	case DIDTableType:
+		di := &DIDItem{}
+		err = di.Unmarshal(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("kvtable unmarshal did item: %w", err)
+		}
+		return di, nil
+	case MethodTableType:
+		mi := &MethodItem{}
+		err = mi.Unmarshal(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("kvtable unmarshal method item: %w", err)
+		}
+		return mi, nil
+	default:
+		return nil, fmt.Errorf("kvtable unknown table type: %d", typ)
 	}
-	return nil
 }
 
 // DeleteItem without any checks
-func (r *KVTable) DeleteItem(key DID) error {
-	err := r.store.Delete([]byte(key))
+func (r *KVTable) DeleteItem(did DID) error {
+	err := r.store.Delete([]byte(did))
 	if err != nil {
 		return fmt.Errorf("kvtable store: %w", err)
 	}

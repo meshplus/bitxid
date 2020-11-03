@@ -1,12 +1,12 @@
 package bitxid
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/meshplus/bitxhub-kit/storage"
 
 	"github.com/sirupsen/logrus"
-	"golang.org/x/crypto/sha3"
 )
 
 //
@@ -18,8 +18,30 @@ const (
 // Size of hash byte
 const Size int = 64
 
-var _ MethodManager = (*MethodRegistry)(nil)
 var _ Doc = (*MethodDoc)(nil)
+
+// MethodDoc .
+type MethodDoc struct {
+	BasicDoc
+	Parent string `json:"parent"`
+}
+
+// Marshal .
+func (md *MethodDoc) Marshal() ([]byte, error) {
+	return Struct2Bytes(md)
+}
+
+// Unmarshal .
+func (md *MethodDoc) Unmarshal(docBytes []byte) error {
+	return Bytes2Struct(docBytes, &md)
+}
+
+// GetID .
+func (md *MethodDoc) GetID() DID {
+	return md.ID
+}
+
+var _ MethodManager = (*MethodRegistry)(nil)
 
 // MethodRegistry .
 type MethodRegistry struct {
@@ -31,44 +53,39 @@ type MethodRegistry struct {
 	// network
 }
 
-// MethodItem reperesents a method item.
-// Registry table is used together with docdb,
-// we suggest to store large data off-chain(in docdb)
-// only some frequently used data on-chain(in cache).
-type MethodItem struct {
-	Method  DID    // primary key of the item, like a did
-	Owner   DID    // owner of the method, is a did
-	DocAddr string // addr where the doc file stored
-	DocHash []byte // hash of the doc file
-	Status  int    // status of the item
-	Cache   []byte // onchain storage part
-}
+var _ TableItem = (*MethodItem)(nil)
 
-// MethodDoc .
-type MethodDoc struct {
-	BasicDoc
-	Parent string `json:"parent"`
+// MethodItem reperesents a method item, element of registry table.
+// Registry table is used together with docdb.
+type MethodItem struct {
+	BasicItem
+	Owner DID // owner of the method, is a did
 }
 
 // Marshal .
-func (d *MethodDoc) Marshal() ([]byte, error) {
-	return Struct2Bytes(d)
+func (mi *MethodItem) Marshal() ([]byte, error) {
+	return Struct2Bytes(mi)
 }
 
 // Unmarshal .
-func (d *MethodDoc) Unmarshal(docBytes []byte) error {
-	return Bytes2Struct(docBytes, &d)
+func (mi *MethodItem) Unmarshal(docBytes []byte) error {
+	return Bytes2Struct(docBytes, &mi)
+}
+
+// GetID .
+func (mi *MethodItem) GetID() DID {
+	return mi.ID
 }
 
 // NewMethodRegistry news a MethodRegistry
-func NewMethodRegistry(s1 storage.Storage, s2 storage.Storage, l logrus.FieldLogger, mc *MethodConfig) (*MethodRegistry, error) {
-	rt, err := NewKVTable(s1)
+func NewMethodRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger, mc *MethodConfig) (*MethodRegistry, error) {
+	rt, err := NewKVTable(ts)
 	if err != nil {
-		return nil, fmt.Errorf("method new table: %w", err)
+		return nil, fmt.Errorf("Method new table: %w", err)
 	}
-	db, err := NewKVDocDB(s2)
+	db, err := NewKVDocDB(ds)
 	if err != nil {
-		return nil, fmt.Errorf("method new docdb: %w", err)
+		return nil, fmt.Errorf("Method new docdb: %w", err)
 	}
 	return &MethodRegistry{
 		table:  rt,
@@ -82,17 +99,25 @@ func NewMethodRegistry(s1 storage.Storage, s2 storage.Storage, l logrus.FieldLog
 // SetupGenesis set up genesis to boot the whole methed system
 func (r *MethodRegistry) SetupGenesis() error {
 	if !r.config.IsRoot {
-		return fmt.Errorf("method genesis: registry not root")
+		return fmt.Errorf("Method genesis: registry not root")
 	}
 	if r.config.GenesisMetohd != r.config.GenesisDoc.ID {
-		return fmt.Errorf("method genesis: method not matched with doc")
+		return fmt.Errorf("Method genesis: Method not matched with doc")
 	}
 	// register method
-	r.Apply(DID(r.config.Admin), DID(r.config.GenesisMetohd))
-	r.AuditApply(DID(r.config.GenesisMetohd), true)
-	_, _, err := r.Register(r.config.GenesisDoc)
+	err := r.Apply(r.config.Admin, r.config.GenesisMetohd)
 	if err != nil {
-		return fmt.Errorf("genesis: %w", err)
+		return fmt.Errorf("Method genesis: %w", err)
+	}
+
+	err = r.AuditApply(r.config.GenesisMetohd, true)
+	if err != nil {
+		return fmt.Errorf("Method genesis: %w", err)
+	}
+
+	_, _, err = r.Register(r.config.GenesisDoc)
+	if err != nil {
+		return fmt.Errorf("Method genesis: %w", err)
 	}
 	// add admins did
 	r.AddAdmin(DID(r.config.Admin))
@@ -128,7 +153,7 @@ func (r *MethodRegistry) HasAdmin(caller DID) bool {
 func (r *MethodRegistry) Apply(caller DID, method DID) error {
 	// check if Method Name meets standard
 	if !DID(method).IsValidFormat() {
-		return fmt.Errorf("method name is not standard")
+		return fmt.Errorf("Method name is not standard")
 	}
 	// check if Method exists
 	exist, err := r.HasMethod(method)
@@ -136,22 +161,22 @@ func (r *MethodRegistry) Apply(caller DID, method DID) error {
 		return err
 	}
 	if exist == true {
-		return fmt.Errorf("apply method %s already existed", method)
+		return fmt.Errorf("apply Method %s already existed", method)
 	}
 
 	status := r.getMethodStatus(method)
 	if status != Initial {
-		return fmt.Errorf("can not apply method under status: %d", status)
+		return fmt.Errorf("can not apply Method under status: %d", status)
 	}
 	// creates item in table
-	err = r.table.CreateItem(method,
-		MethodItem{
-			Method: DID(method),
-			Status: ApplyAudit,
-			Owner:  caller,
+	err = r.table.CreateItem(
+		&MethodItem{BasicItem{
+			ID:     DID(method),
+			Status: ApplyAudit},
+			caller,
 		})
 	if err != nil {
-		return fmt.Errorf("apply method on table: %w", err)
+		return fmt.Errorf("apply Method on table: %w", err)
 	}
 	return nil
 }
@@ -164,7 +189,7 @@ func (r *MethodRegistry) AuditApply(method DID, result bool) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("auditapply method %s not existed", method)
+		return fmt.Errorf("auditapply Method %s not existed", method)
 	}
 	status := r.getMethodStatus(method)
 	if !(status == ApplyAudit || status == ApplyFailed) {
@@ -175,10 +200,7 @@ func (r *MethodRegistry) AuditApply(method DID, result bool) error {
 	} else {
 		err = r.auditStatus(method, ApplyFailed)
 	}
-	if err != nil {
-		return fmt.Errorf("method auditapply status: %w", err)
-	}
-	return nil
+	return err
 }
 
 // Register ties method name to a method doc
@@ -190,7 +212,7 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 		return "", nil, err
 	}
 	if exist == false {
-		return "", nil, fmt.Errorf("register method %s not existed", method)
+		return "", nil, fmt.Errorf("register Method %s not existed", method)
 	}
 	status := r.getMethodStatus(method)
 	if status != ApplySuccess {
@@ -199,28 +221,28 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 
 	docBytes, err := doc.Marshal()
 	if err != nil {
-		return "", nil, fmt.Errorf("method register doc marshal: %w", err)
+		return "", nil, fmt.Errorf("Method register doc marshal: %w", err)
 	}
 
-	docAddr, err := r.docdb.Create(method, &doc)
+	docAddr, err := r.docdb.Create(&doc)
 	if err != nil {
-		return "", nil, fmt.Errorf("method register on docdb: %w", err)
+		return "", nil, fmt.Errorf("Method register on docdb: %w", err)
 	}
-	docHash := sha3.Sum512(docBytes) // docHash := sha256.Sum256(doc)
+	docHash := sha256.Sum256(docBytes)
 	// update MethodRegistry table
-	item := &MethodItem{}
-	err = r.table.GetItem(method, &item)
+	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return "", nil, fmt.Errorf("method register table get: %w", err)
+		return "", nil, fmt.Errorf("Method register table get: %w", err)
 	}
-	item.Status = Normal
-	item.DocAddr = docAddr
-	item.DocHash = docHash[:]
-	err = r.table.UpdateItem(method, item)
+	itemM := item.(*MethodItem)
+	itemM.Status = Normal
+	itemM.DocAddr = docAddr
+	itemM.DocHash = docHash[:]
+	err = r.table.UpdateItem(itemM)
 	if err != nil {
-		return docAddr, item.DocHash, fmt.Errorf("method register table update: %w", err)
+		return docAddr, itemM.DocHash, fmt.Errorf("Method register table update: %w", err)
 	}
-	return docAddr, item.DocHash, nil
+	return docAddr, itemM.DocHash, nil
 }
 
 // Update .
@@ -233,7 +255,7 @@ func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
 		return "", nil, err
 	}
 	if exist == false {
-		return "", nil, fmt.Errorf("update method %s not existed", method)
+		return "", nil, fmt.Errorf("update Method %s not existed", method)
 	}
 	status := r.getMethodStatus(method)
 	if status != Normal {
@@ -242,25 +264,25 @@ func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
 
 	docBytes, err := doc.Marshal()
 	if err != nil {
-		return "", nil, fmt.Errorf("method update doc marshal: %w", err)
+		return "", nil, fmt.Errorf("Method update doc marshal: %w", err)
 	}
 
-	docAddr, err := r.docdb.Update(method, &doc)
+	docAddr, err := r.docdb.Update(&doc)
 	if err != nil {
-		return "", nil, fmt.Errorf("method update on docdb: %w", err)
+		return "", nil, fmt.Errorf("Method update on docdb: %w", err)
 	}
-	docHash := sha3.Sum512(docBytes)
+	docHash := sha256.Sum256(docBytes)
 
-	item := MethodItem{}
-	err = r.table.GetItem(method, &item)
+	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("method update table get: %w", err)
+		return docAddr, docHash[:], fmt.Errorf("Method update table get: %w", err)
 	}
-	item.DocAddr = docAddr
-	item.DocHash = docHash[:]
-	err = r.table.UpdateItem(method, item)
+	itemM := item.(*MethodItem)
+	itemM.DocAddr = docAddr
+	itemM.DocHash = docHash[:]
+	err = r.table.UpdateItem(itemM)
 	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("method update table update: %w", err)
+		return docAddr, docHash[:], fmt.Errorf("Method update table update: %w", err)
 	}
 
 	return docAddr, docHash[:], nil
@@ -268,19 +290,15 @@ func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
 
 // Audit .
 // ATN: only admin should call this.
-func (r *MethodRegistry) Audit(method DID, status int) error {
+func (r *MethodRegistry) Audit(method DID, status StatusType) error {
 	exist, err := r.HasMethod(method)
 	if err != nil {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("audit method %s not existed", method)
+		return fmt.Errorf("audit Method %s not existed", method)
 	}
-	err = r.auditStatus(method, status)
-	if err != nil {
-		return fmt.Errorf("method audit status: %w", err)
-	}
-	return nil
+	return r.auditStatus(method, status)
 }
 
 // Freeze .
@@ -291,13 +309,9 @@ func (r *MethodRegistry) Freeze(method DID) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("freeze method %s not existed", method)
+		return fmt.Errorf("freeze Method %s not existed", method)
 	}
-	err = r.auditStatus(method, Frozen)
-	if err != nil {
-		return fmt.Errorf("method freeze status aduit: %w", err)
-	}
-	return nil
+	return r.auditStatus(method, Frozen)
 }
 
 // UnFreeze .
@@ -308,30 +322,26 @@ func (r *MethodRegistry) UnFreeze(method DID) error {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("unfreeze method %s not existed", method)
+		return fmt.Errorf("unfreeze Method %s not existed", method)
 	}
 
-	err = r.auditStatus(method, Normal)
-	if err != nil {
-		return fmt.Errorf("method unfreeze status aduit: %w", err)
-	}
-	return nil
+	return r.auditStatus(method, Normal)
 }
 
 // Delete .
 func (r *MethodRegistry) Delete(method DID) error {
 	err := r.auditStatus(method, Initial)
 	if err != nil {
-		return fmt.Errorf("method delete status aduit: %w", err)
+		return fmt.Errorf("Method delete status aduit: %w", err)
 	}
 
 	err = r.docdb.Delete(method)
 	if err != nil {
-		return fmt.Errorf("method delete docdb: %w", err)
+		return fmt.Errorf("Method delete docdb: %w", err)
 	}
 	err = r.table.DeleteItem(method)
 	if err != nil {
-		return fmt.Errorf("method delete table: %w", err)
+		return fmt.Errorf("Method delete table: %w", err)
 	}
 
 	return nil
@@ -339,25 +349,25 @@ func (r *MethodRegistry) Delete(method DID) error {
 
 // Resolve .
 func (r *MethodRegistry) Resolve(method DID) (MethodItem, MethodDoc, error) {
-	item := MethodItem{}
 	exist, err := r.HasMethod(method)
 	if err != nil {
 		return MethodItem{}, MethodDoc{}, err
 	}
 	if exist == false {
-		return MethodItem{}, MethodDoc{}, fmt.Errorf("resolve method %s not existed", method)
+		return MethodItem{}, MethodDoc{}, fmt.Errorf("resolve Method %s not existed", method)
 	}
 
-	err = r.table.GetItem(method, &item)
+	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return MethodItem{}, MethodDoc{}, fmt.Errorf("method resolve table get: %w", err)
+		return MethodItem{}, MethodDoc{}, fmt.Errorf("Method resolve table get: %w", err)
 	}
+	itemM := item.(*MethodItem)
 	doc, err := r.docdb.Get(method, MethodDocType)
 	docM := doc.(*MethodDoc)
 	if err != nil {
-		return item, MethodDoc{}, fmt.Errorf("method resolve docdb get: %w", err)
+		return *itemM, MethodDoc{}, fmt.Errorf("Method resolve docdb get: %w", err)
 	}
-	return item, *docM, nil
+	return *itemM, *docM, nil
 }
 
 // MethodHasAccount checks whether account exists on the method blockchain
@@ -374,27 +384,27 @@ func (r *MethodRegistry) HasMethod(method DID) (bool, error) {
 	return exist, nil
 }
 
-func (r *MethodRegistry) getMethodStatus(method DID) int {
-	item := MethodItem{}
-	err := r.table.GetItem(method, &item)
+func (r *MethodRegistry) getMethodStatus(method DID) StatusType {
+	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		// r.logger.Warn("[getMethodStatus] r.table.GetItem err:", err)
+		r.logger.Warn("method status get item:", err)
 		return Initial
 	}
-	return item.Status
+	itemM := item.(*MethodItem)
+	return itemM.Status
 }
 
 // auditStatus .
-func (r *MethodRegistry) auditStatus(method DID, status int) error {
-	item := &MethodItem{}
-	err := r.table.GetItem(method, &item)
+func (r *MethodRegistry) auditStatus(method DID, status StatusType) error {
+	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return fmt.Errorf("method aduit status table get: %w", err)
+		return fmt.Errorf("Method aduit status table get: %w", err)
 	}
-	item.Status = status
-	err = r.table.UpdateItem(method, item)
+	itemM := item.(*MethodItem)
+	itemM.Status = status
+	err = r.table.UpdateItem(itemM)
 	if err != nil {
-		return fmt.Errorf("method aduit status table update: %w", err)
+		return fmt.Errorf("Method aduit status table update: %w", err)
 	}
 	return nil
 }

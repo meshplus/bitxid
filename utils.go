@@ -11,8 +11,7 @@ func Struct2Bytes(s interface{}) ([]byte, error) {
 	buf := bytes.Buffer{}
 	err := gob.NewEncoder(&buf).Encode(s)
 	if err != nil {
-		fmt.Println("gob Encode err:", err)
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("gob encode err: %w", err)
 	}
 	return buf.Bytes(), nil
 }
@@ -22,8 +21,7 @@ func Bytes2Struct(b []byte, s interface{}) error {
 	buf := bytes.NewBuffer(b)
 	err := gob.NewDecoder(buf).Decode(s)
 	if err != nil {
-		fmt.Println("gob Decode:", err)
-		return err
+		return fmt.Errorf("gob decode err: %w", err)
 	}
 	return nil
 }

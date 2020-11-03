@@ -24,60 +24,68 @@ func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
 }
 
 // Has whether db has the item(by key)
-func (d *KVDocDB) Has(key DID) (bool, error) {
-	return d.store.Has([]byte(key))
+func (d *KVDocDB) Has(did DID) (bool, error) {
+	return d.store.Has([]byte(did))
 }
 
 // Create .
-func (d *KVDocDB) Create(key DID, value Doc) (string, error) {
-	exist, err := d.Has(key)
+func (d *KVDocDB) Create(doc Doc) (string, error) {
+	did := doc.GetID()
+	if did == DID("") {
+		return "", fmt.Errorf("kvdb create doc id is null")
+	}
+	exist, err := d.Has(did)
 	if err != nil {
 		return "", err
 	}
 	if exist == true {
-		return "", fmt.Errorf("Key %s already existed in kvdb", key)
+		return "", fmt.Errorf("Item %s already existed in kvdb", did)
 	}
-	valueByte, err := value.Marshal()
+	valueBytes, err := doc.Marshal()
 	if err != nil {
 		return "", err
 	}
-	err = d.store.Put([]byte(key), valueByte)
+	err = d.store.Put([]byte(did), valueBytes)
 	if err != nil {
 		return "", fmt.Errorf("kvdb store: %w", err)
 	}
-	return d.basicAddr + "/" + string(key), nil
+	return d.basicAddr + "/" + string(did), nil
 }
 
 // Update .
-func (d *KVDocDB) Update(key DID, value Doc) (string, error) {
-	exist, err := d.Has(key)
+func (d *KVDocDB) Update(doc Doc) (string, error) {
+	did := doc.GetID()
+	if did == DID("") {
+		return "", fmt.Errorf("kvdb update doc id is null")
+	}
+	exist, err := d.Has(did)
 	if err != nil {
 		return "", err
 	}
 	if exist == false {
-		return "", fmt.Errorf("Key %s not existed in kvdb", key)
+		return "", fmt.Errorf("Item %s not existed in kvdb", did)
 	}
-	valueBytes, err := value.Marshal()
+	valueBytes, err := doc.Marshal()
 	if err != nil {
 		return "", err
 	}
-	err = d.store.Put([]byte(key), valueBytes)
+	err = d.store.Put([]byte(did), valueBytes)
 	if err != nil {
 		return "", fmt.Errorf("kvdb store: %w", err)
 	}
-	return d.basicAddr + "/" + string(key), nil
+	return d.basicAddr + "/" + string(did), nil
 }
 
 // Get .
-func (d *KVDocDB) Get(key DID, typ int) (Doc, error) {
-	exist, err := d.Has(key)
+func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
+	exist, err := d.Has(did)
 	if err != nil {
 		return nil, err
 	}
 	if exist == false {
-		return nil, fmt.Errorf("Key %s not existed in kvdb", key)
+		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
 	}
-	valueBytes, err := d.store.Get([]byte(key))
+	valueBytes, err := d.store.Get([]byte(did))
 	if err != nil {
 		return nil, fmt.Errorf("kvdb store: %w", err)
 	}
@@ -102,8 +110,8 @@ func (d *KVDocDB) Get(key DID, typ int) (Doc, error) {
 }
 
 // Delete .
-func (d *KVDocDB) Delete(key DID) error {
-	err := d.store.Delete([]byte(key))
+func (d *KVDocDB) Delete(did DID) error {
+	err := d.store.Delete([]byte(did))
 	if err != nil {
 		return fmt.Errorf("kvdb store: %w", err)
 	}

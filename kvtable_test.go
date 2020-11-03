@@ -30,12 +30,13 @@ func TestTABLECURD(t *testing.T) {
 
 	defer os.RemoveAll(dir)
 
-	key := DID("did:bitxhub001:appchain1:.")
-	item := testStruct{
-		A: 1,
-		B: "abc",
-		C: []byte("cde"),
-		D: []string{"f", "g", "high"},
+	key := DID("a:b:c:1")
+	item := MethodItem{
+		BasicItem{ID: key,
+			DocAddr: "./abc",
+			DocHash: []byte("cde"),
+			Status:  1},
+		"a:b:c:1",
 	}
 	s, err := leveldb.New(dir)
 
@@ -48,32 +49,26 @@ func TestTABLECURD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, false, ret1)
 	// test CreateItem:
-	err = rt.CreateItem(key, item)
+	err = rt.CreateItem(&item)
 	assert.Nil(t, err)
 	// test CreateItem:
-	item2 := testStruct{}
-	err = rt.GetItem(key, &item2)
+	item2, err := rt.GetItem(key, MethodTableType)
 	assert.Nil(t, err)
-	assert.Equal(t, item, item2)
+	assert.Equal(t, item, *item2.(*MethodItem))
 	// test
-	item3 := testStruct{
-		A: 1,
-		B: "abc",
-		C: []byte("cde"),
-		D: []string{"f", "g", "high"},
-		E: &subStruct{
-			M: 1,
-			N: "b",
-			O: []byte("aaa"),
-			P: []string{"l", "ll", "lll"},
-		},
+	item3 := MethodItem{
+		BasicItem{
+			ID:      DID("a:b:c:1"),
+			DocAddr: "./abc",
+			DocHash: []byte("fgh"),
+			Status:  1},
+		"a:b:c:1",
 	}
-	err = rt.UpdateItem(key, item3)
+	err = rt.UpdateItem(&item3)
 	assert.Nil(t, err)
-	item4 := testStruct{}
-	err = rt.GetItem(key, &item4)
+	item4, err := rt.GetItem(key, MethodTableType)
 	assert.Nil(t, err)
-	assert.Equal(t, item3, item4)
+	assert.Equal(t, item3, *item4.(*MethodItem))
 	// test DeleteItem:
 	err = rt.DeleteItem(key)
 	assert.Nil(t, err)

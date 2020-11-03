@@ -4,25 +4,33 @@ package bitxid
 type Doc interface {
 	Marshal() ([]byte, error)
 	Unmarshal(docBytes []byte) error
+	GetID() DID
+}
+
+// TableItem .
+type TableItem interface {
+	Marshal() ([]byte, error)
+	Unmarshal(docBytes []byte) error
+	GetID() DID
 }
 
 // DocDB stores info doc for an element
 type DocDB interface {
-	Create(key DID, value Doc) (string, error)
-	Update(key DID, value Doc) (string, error)
-	Get(key DID, typ int) (Doc, error)
-	Delete(key DID) error
-	Has(key DID) (bool, error)
+	Create(doc Doc) (string, error)
+	Update(doc Doc) (string, error)
+	Get(did DID, typ DocType) (Doc, error)
+	Delete(did DID) error
+	Has(did DID) (bool, error)
 	Close() error
 }
 
 // RegistryTable represents state table for a registry
 type RegistryTable interface {
-	CreateItem(key DID, item interface{}) error
-	UpdateItem(key DID, item interface{}) error
-	GetItem(key DID, item interface{}) error
-	HasItem(key DID) (bool, error)
-	DeleteItem(key DID) error
+	CreateItem(item TableItem) error
+	UpdateItem(item TableItem) error
+	GetItem(did DID, typ TableType) (TableItem, error)
+	HasItem(did DID) (bool, error)
+	DeleteItem(did DID) error
 	Close() error
 }
 
@@ -30,7 +38,7 @@ type RegistryTable interface {
 type MethodManager interface {
 	Apply(caller DID, method DID) error
 	AuditApply(method DID, result bool) error
-	Audit(method DID, status int) error
+	Audit(method DID, status StatusType) error
 	Register(doc MethodDoc) (string, []byte, error)
 	Resolve(method DID) (MethodItem, MethodDoc, error)
 	Update(doc MethodDoc) (string, []byte, error)
