@@ -1,20 +1,18 @@
 package bitxid
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/sha3"
 )
 
-const (
-	mdbPath   string = "./config/method.docdb"
-	mrtPath   string = "./config/method.table"
-	mconfPath string = "./config"
-)
-
+var mdbPath string
+var mrtPath string
 var mr *MethodRegistry
 
 var rootMethod = DID("did:bitxhub:relayroot:.")
@@ -56,7 +54,13 @@ func getMethodDoc(ran int) MethodDoc {
 	return docE
 }
 
-func TestNew(t *testing.T) {
+func TestMethodNew(t *testing.T) {
+	dir1, err := ioutil.TempDir("testdata", "method.docdb")
+	assert.Nil(t, err)
+	dir2, err := ioutil.TempDir("testdata", "method.table")
+	mdbPath = dir1
+	mrtPath = dir2
+	assert.Nil(t, err)
 	loggerInit()
 	l := loggerGet(loggerMethod)
 	s1, err := leveldb.New(mrtPath)
@@ -70,17 +74,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestMethodSetupGenesisSucceed(t *testing.T) {
-	// docBytes, err := Struct2Bytes(mdoc)
-	// assert.Nil(t, err)
-	// docHashE := sha3.Sum512(docBytes)
-	// strHashE := fmt.Sprintf("%x", docHashE)
-	// docAddrE := "./" + string(rootMethod)
-
 	err := mr.SetupGenesis()
 	assert.Nil(t, err)
-	// strHash := fmt.Sprintf("%x", docHash)
-	// assert.Equal(t, strHashE, strHash)
-	// assert.Equal(t, docAddrE, docAddr)
 }
 
 func TestHasMethodSucceed(t *testing.T) {
@@ -106,7 +101,9 @@ func TestMethodAuditApplySucceed(t *testing.T) {
 func TestMethodRegisterSucceed(t *testing.T) {
 	docBytes, err := Struct2Bytes(mdocA)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docBytes)
+	// docHashE := sha3.Sum512(docBytes)
+	docHashE := sha256.Sum256(docBytes)
+
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./" + string(method)
 
@@ -123,7 +120,8 @@ func TestMethodRegisterSucceed(t *testing.T) {
 func TestMethodUpdateSucceed(t *testing.T) {
 	docBytes, err := Struct2Bytes(mdocB)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docBytes)
+	// docHashE := sha3.Sum512(docBytes)
+	docHashE := sha256.Sum256(docBytes)
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./" + string(method)
 
@@ -172,12 +170,12 @@ func TestMethodResolveSucceed(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, mdocB, doc) // compare doc
 	itemE := MethodItem{
-		Method:  DID(method),
-		Owner:   mcaller,
-		DocAddr: docAddrE,
-		Status:  Normal,
+		BasicItem{ID: DID(method),
+			DocAddr: docAddrE,
+			Status:  Normal},
+		mcaller,
 	}
-	assert.Equal(t, itemE.Method, item.Method)
+	assert.Equal(t, itemE.ID, item.ID)
 	assert.Equal(t, itemE.Owner, item.Owner)
 	assert.Equal(t, itemE.DocAddr, item.DocAddr)
 	assert.Equal(t, itemE.Status, item.Status)
@@ -202,5 +200,10 @@ func TestCloseSucceed(t *testing.T) {
 	err := mr.table.Close()
 	assert.Nil(t, err)
 	err = mr.docdb.Close()
+	assert.Nil(t, err)
+
+	err = os.RemoveAll(mdbPath)
+	assert.Nil(t, err)
+	err = os.RemoveAll(mrtPath)
 	assert.Nil(t, err)
 }

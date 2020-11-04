@@ -3,7 +3,6 @@ package bitxid
 import (
 	"fmt"
 
-	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage"
 )
 
@@ -12,7 +11,7 @@ type KVTable struct {
 	store storage.Storage
 }
 
-var tablelogger = log.NewWithModule("registry.Table")
+// var tablelogger = log.NewWithModule("registry.Table")
 
 var _ RegistryTable = (*KVTable)(nil)
 
@@ -24,97 +23,110 @@ func NewKVTable(S storage.Storage) (*KVTable, error) {
 }
 
 // HasItem whether table has the item(by key)
-func (r *KVTable) HasItem(key []byte) (bool, error) {
-	exists, err := r.store.Has(key)
+func (r *KVTable) HasItem(did DID) (bool, error) {
+	exists, err := r.store.Has([]byte(did))
 	if err != nil {
-		tablelogger.Error("r.store.Has err:", err)
-		return false, err
+		return false, fmt.Errorf("kvtable store: %w", err)
 	}
 	return exists, err
 }
 
 // SetItem sets without any checks
-func (r *KVTable) setItem(key []byte, item interface{}) error {
-	bitem, err := Struct2Bytes(item)
+func (r *KVTable) setItem(did DID, item TableItem) error {
+	bitem, err := item.Marshal()
 	if err != nil {
-		tablelogger.Error("Struct2Bytes err", err)
-		return err
+		return fmt.Errorf("kvtable marshal: %w", err)
 	}
-	err = r.store.Put(key, bitem)
+	err = r.store.Put([]byte(did), bitem)
 	if err != nil {
-		tablelogger.Error("store.Put err", err)
-		return err
+		return fmt.Errorf("kvtable store: %w", err)
 	}
 	return nil
 }
 
 // CreateItem checks and sets
-func (r *KVTable) CreateItem(key []byte, item interface{}) error {
-	exist, err := r.HasItem(key)
+func (r *KVTable) CreateItem(item TableItem) error {
+	did := item.GetID()
+	if did == DID("") {
+		return fmt.Errorf("kvtable create item id is null")
+	}
+	exist, err := r.HasItem(did)
 	if err != nil {
 		return err
 	}
 	if exist == true {
-		return fmt.Errorf("The key ALREADY existed in registry KVTable")
+		return fmt.Errorf("Key %s already existed in kvtable", did)
 	}
-	err = r.setItem(key, item)
-	if err != nil {
-		tablelogger.Error("SetItem err", err)
-		return err
-	}
-	return nil
+	return r.setItem(did, item)
 }
 
 // UpdateItem checks and sets
-func (r *KVTable) UpdateItem(key []byte, item interface{}) error {
-	exist, err := r.HasItem(key)
+func (r *KVTable) UpdateItem(item TableItem) error {
+	did := item.GetID()
+	if did == DID("") {
+		return fmt.Errorf("kvtable create item id is null")
+	}
+	exist, err := r.HasItem(did)
 	if err != nil {
 		return err
 	}
 	if exist == false {
-		return fmt.Errorf("The key NOT existed in registry KVTable")
+		return fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	err = r.setItem(key, item)
+	err = r.setItem(did, item)
 	if err != nil {
-		tablelogger.Error("SetItem err", err)
 		return err
 	}
 	return nil
 }
 
 // GetItem checks ang gets
-func (r *KVTable) GetItem(key []byte, item interface{}) error {
-	exist, err := r.HasItem(key)
+func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
+	exist, err := r.HasItem(did)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if exist == false {
-		return fmt.Errorf("The key NOT existed in registry KVTable")
+		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	bitem, err := r.store.Get(key)
+	itemBytes, err := r.store.Get([]byte(did))
 	if err != nil {
-		tablelogger.Error("store.Get err", err)
-		return err
+		return nil, fmt.Errorf("kvtable store: %w", err)
 	}
-	err = Bytes2Struct(bitem, item)
-	if err != nil {
-		tablelogger.Error("Bytes2Struct err", err)
-		return err
+	switch typ {
+	case DIDTableType:
+		di := &DIDItem{}
+		err = di.Unmarshal(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("kvtable unmarshal did item: %w", err)
+		}
+		return di, nil
+	case MethodTableType:
+		mi := &MethodItem{}
+		err = mi.Unmarshal(itemBytes)
+		if err != nil {
+			return nil, fmt.Errorf("kvtable unmarshal method item: %w", err)
+		}
+		return mi, nil
+	default:
+		return nil, fmt.Errorf("kvtable unknown table type: %d", typ)
 	}
-	return nil
 }
 
 // DeleteItem without any checks
-func (r *KVTable) DeleteItem(key []byte) error {
-	err := r.store.Delete(key)
+func (r *KVTable) DeleteItem(did DID) error {
+	err := r.store.Delete([]byte(did))
 	if err != nil {
-		tablelogger.Error("r.store.Delete err", err)
-		return err
+		return fmt.Errorf("kvtable store: %w", err)
 	}
 	return nil
 }
 
 // Close .
 func (r *KVTable) Close() error {
-	return r.store.Close()
+	err := r.store.Close()
+	if err != nil {
+		return fmt.Errorf("kvtable store: %w", err)
+	}
+	return nil
 }

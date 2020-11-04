@@ -1,13 +1,13 @@
 package bitxid
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/stretchr/testify/assert"
 )
-
-const rtPath string = "./config/registry.table"
 
 type testStruct struct {
 	A int
@@ -24,14 +24,22 @@ type subStruct struct {
 }
 
 func TestTABLECURD(t *testing.T) {
-	key := []byte("did:bitxhub001:appchain1:.")
-	item := testStruct{
-		A: 1,
-		B: "abc",
-		C: []byte("cde"),
-		D: []string{"f", "g", "high"},
+
+	dir, err := ioutil.TempDir("testdata", "registry.table")
+	assert.Nil(t, err)
+
+	defer os.RemoveAll(dir)
+
+	key := DID("a:b:c:1")
+	item := MethodItem{
+		BasicItem{ID: key,
+			DocAddr: "./abc",
+			DocHash: []byte("cde"),
+			Status:  1},
+		"a:b:c:1",
 	}
-	s, err := leveldb.New(rtPath)
+	s, err := leveldb.New(dir)
+
 	assert.Nil(t, err)
 	rt, err := NewKVTable(s)
 	assert.Nil(t, err)
@@ -41,32 +49,26 @@ func TestTABLECURD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, false, ret1)
 	// test CreateItem:
-	err = rt.CreateItem(key, item)
+	err = rt.CreateItem(&item)
 	assert.Nil(t, err)
 	// test CreateItem:
-	item2 := testStruct{}
-	err = rt.GetItem(key, &item2)
+	item2, err := rt.GetItem(key, MethodTableType)
 	assert.Nil(t, err)
-	assert.Equal(t, item, item2)
+	assert.Equal(t, item, *item2.(*MethodItem))
 	// test
-	item3 := testStruct{
-		A: 1,
-		B: "abc",
-		C: []byte("cde"),
-		D: []string{"f", "g", "high"},
-		E: &subStruct{
-			M: 1,
-			N: "b",
-			O: []byte("aaa"),
-			P: []string{"l", "ll", "lll"},
-		},
+	item3 := MethodItem{
+		BasicItem{
+			ID:      DID("a:b:c:1"),
+			DocAddr: "./abc",
+			DocHash: []byte("fgh"),
+			Status:  1},
+		"a:b:c:1",
 	}
-	err = rt.UpdateItem(key, item3)
+	err = rt.UpdateItem(&item3)
 	assert.Nil(t, err)
-	item4 := testStruct{}
-	err = rt.GetItem(key, &item4)
+	item4, err := rt.GetItem(key, MethodTableType)
 	assert.Nil(t, err)
-	assert.Equal(t, item3, item4)
+	assert.Equal(t, item3, *item4.(*MethodItem))
 	// test DeleteItem:
 	err = rt.DeleteItem(key)
 	assert.Nil(t, err)

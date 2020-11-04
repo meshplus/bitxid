@@ -1,20 +1,18 @@
 package bitxid
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/sha3"
 )
 
-const (
-	ddbPath   string = "./config/did.docdb"
-	drtPath   string = "./config/did.table"
-	dconfPath string = "./config"
-)
-
+var drtPath string
+var ddbPath string
 var r *DIDRegistry
 
 var rootDID DID = DID("did:bitxhub:appchain001:0x00000001")
@@ -53,6 +51,12 @@ func getDIDDoc(ran int) DIDDoc {
 }
 
 func TestDIDNew(t *testing.T) {
+	dir1, err := ioutil.TempDir("testdata", "did.docdb")
+	assert.Nil(t, err)
+	dir2, err := ioutil.TempDir("testdata", "did.table")
+	assert.Nil(t, err)
+	drtPath = dir1
+	ddbPath = dir2
 	loggerInit()
 	l := loggerGet(loggerDID)
 	s1, err := leveldb.New(drtPath)
@@ -80,7 +84,8 @@ func testHasDIDSucceed(t *testing.T) {
 func TestDIDRegisterSucceed(t *testing.T) {
 	docABytes, err := Struct2Bytes(diddocA)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docABytes)
+	// docHashE := sha3.Sum512(docABytes)
+	docHashE := sha256.Sum256(docABytes)
 	docAddrE := "./" + string(did)
 	docAddr, docHash, err := r.Register(diddocA)
 	assert.Nil(t, err)
@@ -93,7 +98,8 @@ func TestDIDRegisterSucceed(t *testing.T) {
 func TestDIDUpdateSucceed(t *testing.T) {
 	docBBytes, err := Struct2Bytes(diddocB)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docBBytes)
+	// docHashE := sha3.Sum512(docBBytes)
+	docHashE := sha256.Sum256(docBBytes)
 	docAddrE := "./" + string(did)
 	docAddr, docHash, err := r.Update(diddocB)
 	assert.Nil(t, err)
@@ -102,21 +108,22 @@ func TestDIDUpdateSucceed(t *testing.T) {
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 }
-
 func TestDIDResolveSucceed(t *testing.T) {
 	item, doc, err := r.Resolve(did)
 	docBBytes, err := Struct2Bytes(diddocB)
 	assert.Nil(t, err)
-	docHashE := sha3.Sum512(docBBytes)
+	// docHashE := sha3.Sum512(docBBytes)
+	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
 	assert.Equal(t, diddocB, doc) // compare doc
 	itemE := DIDItem{
-		Identifier: did,
-		DocHash:    docHashE[:],
-		DocAddr:    "./" + string(did),
-		Status:     Normal,
+		BasicItem{
+			ID:      did,
+			DocHash: docHashE[:],
+			DocAddr: "./" + string(did),
+			Status:  Normal},
 	}
-	assert.Equal(t, itemE.Identifier, item.Identifier)
+	assert.Equal(t, itemE.ID, item.ID)
 	assert.Equal(t, itemE.DocAddr, item.DocAddr)
 	assert.Equal(t, itemE.DocHash, item.DocHash)
 	assert.Equal(t, itemE.Status, item.Status)
@@ -149,5 +156,10 @@ func TestDIDCloseSucceed(t *testing.T) {
 	err := r.table.Close()
 	assert.Nil(t, err)
 	err = r.docdb.Close()
+	assert.Nil(t, err)
+
+	err = os.RemoveAll(drtPath)
+	assert.Nil(t, err)
+	err = os.RemoveAll(ddbPath)
 	assert.Nil(t, err)
 }
