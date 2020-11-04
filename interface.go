@@ -39,18 +39,18 @@ type MethodManager interface {
 	Apply(caller DID, method DID) error
 	AuditApply(method DID, result bool) error
 	Audit(method DID, status StatusType) error
-	Register(doc MethodDoc) (string, []byte, error)
-	Resolve(method DID) (MethodItem, MethodDoc, error)
-	Update(doc MethodDoc) (string, []byte, error)
+	Register(doc *MethodDoc) (string, []byte, error)
+	Resolve(method DID) (*MethodItem, *MethodDoc, error)
+	Update(doc *MethodDoc) (string, []byte, error)
 	Delete(method DID) error
 	HasMethod(method DID) (bool, error)
 }
 
 // DIDManager .
 type DIDManager interface {
-	Register(doc DIDDoc) (string, []byte, error)
-	Resolve(did DID) (DIDItem, DIDDoc, error)
-	Update(doc DIDDoc) (string, []byte, error)
+	Register(doc *DIDDoc) (string, []byte, error)
+	Resolve(did DID) (*DIDItem, *DIDDoc, error)
+	Update(doc *DIDDoc) (string, []byte, error)
 	Delete(did DID) error
 	HasDID(did DID) (bool, error)
 }

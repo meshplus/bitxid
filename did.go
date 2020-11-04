@@ -135,7 +135,7 @@ func (r *DIDRegistry) GetMethod() DID {
 
 // Register ties did name to a did doc
 // ATN: only did who owns did-name should call this
-func (r *DIDRegistry) Register(doc DIDDoc) (string, []byte, error) {
+func (r *DIDRegistry) Register(doc *DIDDoc) (string, []byte, error) {
 	did := DID(doc.ID)
 	exist, err := r.HasDID(did)
 	if err != nil {
@@ -145,7 +145,7 @@ func (r *DIDRegistry) Register(doc DIDDoc) (string, []byte, error) {
 		return "", nil, fmt.Errorf("DID %s already existed", did)
 	}
 
-	docAddr, err := r.docdb.Create(&doc)
+	docAddr, err := r.docdb.Create(doc)
 	if err != nil {
 		return "", nil, fmt.Errorf("register DID on docdb: %w", err)
 	}
@@ -172,7 +172,7 @@ func (r *DIDRegistry) Register(doc DIDDoc) (string, []byte, error) {
 
 // Update .
 // ATN: only caller who owns did should call this
-func (r *DIDRegistry) Update(doc DIDDoc) (string, []byte, error) {
+func (r *DIDRegistry) Update(doc *DIDDoc) (string, []byte, error) {
 	did := DID(doc.ID)
 	// check exist
 	exist, err := r.HasDID(did)
@@ -191,7 +191,7 @@ func (r *DIDRegistry) Update(doc DIDDoc) (string, []byte, error) {
 		r.logger.Error("update DID doc marshal:", err)
 		return "", nil, err
 	}
-	docAddr, err := r.docdb.Update(&doc)
+	docAddr, err := r.docdb.Update(doc)
 	if err != nil {
 		return "", nil, fmt.Errorf("update DID on docdb: %w", err)
 	}
@@ -212,26 +212,26 @@ func (r *DIDRegistry) Update(doc DIDDoc) (string, []byte, error) {
 }
 
 // Resolve looks up local-chain to resolve did.
-func (r *DIDRegistry) Resolve(did DID) (DIDItem, DIDDoc, error) {
+func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, error) {
 	exist, err := r.HasDID(did)
 	if err != nil {
-		return DIDItem{}, DIDDoc{}, err
+		return nil, nil, err
 	}
 	if exist == false {
-		return DIDItem{}, DIDDoc{}, fmt.Errorf("DID %s not existed", did)
+		return nil, nil, fmt.Errorf("DID %s not existed", did)
 	}
 
 	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
-		return DIDItem{}, DIDDoc{}, fmt.Errorf("resolve DID table get: %w", err)
+		return nil, nil, fmt.Errorf("resolve DID table get: %w", err)
 	}
 	itemD := item.(*DIDItem)
 	doc, err := r.docdb.Get(did, DIDDocType)
 	if err != nil {
-		return *itemD, DIDDoc{}, fmt.Errorf("resolve DID docdb get: %w", err)
+		return itemD, nil, fmt.Errorf("resolve DID docdb get: %w", err)
 	}
 	docD := doc.(*DIDDoc)
-	return *itemD, *docD, nil
+	return itemD, docD, nil
 }
 
 // Freeze .
