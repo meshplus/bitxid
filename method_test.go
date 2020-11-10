@@ -107,7 +107,7 @@ func TestMethodRegisterSucceed(t *testing.T) {
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./" + string(method)
 
-	docAddr, docHash, err := mr.Register(mdocA)
+	docAddr, docHash, err := mr.Register(&mdocA)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	item, _, err := mr.Resolve(method)
@@ -125,7 +125,7 @@ func TestMethodUpdateSucceed(t *testing.T) {
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./" + string(method)
 
-	docAddr, docHash, err := mr.Update(mdocB)
+	docAddr, docHash, err := mr.Update(&mdocB)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	assert.Equal(t, strHashE, strHash)
@@ -168,7 +168,7 @@ func TestMethodResolveSucceed(t *testing.T) {
 	docAddrE := "./" + string(method)
 	item, doc, err := mr.Resolve(method)
 	assert.Nil(t, err)
-	assert.Equal(t, mdocB, doc) // compare doc
+	assert.Equal(t, &mdocB, doc) // compare doc
 	itemE := MethodItem{
 		BasicItem{ID: DID(method),
 			DocAddr: docAddrE,

@@ -24,18 +24,18 @@ type BitXIDConfig struct {
 
 // DIDConfig .
 type DIDConfig struct {
-	Admin    DID    `toml:"admin" json:"admin"`
-	AdminDoc DIDDoc `toml:"admin_doc" json:"admin_doc"`
-	Addr     string `toml:"addr" json:"addr"`
+	Admin    DID     `toml:"admin" json:"admin"`
+	AdminDoc *DIDDoc `toml:"admin_doc" json:"admin_doc"`
+	Addr     string  `toml:"addr" json:"addr"`
 }
 
 // MethodConfig .
 type MethodConfig struct {
-	Admin         DID       `toml:"admin" json:"admin"`
-	Addr          string    `toml:"addr" json:"addr"`
-	IsRoot        bool      `toml:"is_root" json:"is_root"`
-	GenesisMetohd DID       `toml:"genesis_metohd" json:"genesis_metohd"`
-	GenesisDoc    MethodDoc `toml:"genesis_doc" json:"genesis_doc"`
+	Admin         DID        `toml:"admin" json:"admin"`
+	Addr          string     `toml:"addr" json:"addr"`
+	IsRoot        bool       `toml:"is_root" json:"is_root"`
+	GenesisMetohd DID        `toml:"genesis_metohd" json:"genesis_metohd"`
+	GenesisDoc    *MethodDoc `toml:"genesis_doc" json:"genesis_doc"`
 }
 
 // DefaultConfig .
@@ -66,8 +66,8 @@ func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 	}, nil
 }
 
-func getAdminDoc() DIDDoc {
-	doc := DIDDoc{}
+func getAdminDoc() *DIDDoc {
+	doc := &DIDDoc{}
 	doc.ID = "did:bitxhub:appchain001:0x00000001"
 	doc.Type = "user"
 	pk := PubKey{
@@ -83,8 +83,8 @@ func getAdminDoc() DIDDoc {
 	return doc
 }
 
-func getGenesisMetohd() MethodDoc {
-	doc := MethodDoc{}
+func getGenesisMetohd() *MethodDoc {
+	doc := &MethodDoc{}
 	doc.ID = "did:bitxhub:relayroot:."
 	doc.Type = "method"
 	pk := PubKey{

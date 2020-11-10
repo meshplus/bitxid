@@ -205,7 +205,7 @@ func (r *MethodRegistry) AuditApply(method DID, result bool) error {
 
 // Register ties method name to a method doc
 // ATN: only did who owns method-name should call this
-func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
+func (r *MethodRegistry) Register(doc *MethodDoc) (string, []byte, error) {
 	method := DID(doc.ID)
 	exist, err := r.HasMethod(method)
 	if err != nil {
@@ -224,7 +224,7 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 		return "", nil, fmt.Errorf("Method register doc marshal: %w", err)
 	}
 
-	docAddr, err := r.docdb.Create(&doc)
+	docAddr, err := r.docdb.Create(doc)
 	if err != nil {
 		return "", nil, fmt.Errorf("Method register on docdb: %w", err)
 	}
@@ -247,7 +247,7 @@ func (r *MethodRegistry) Register(doc MethodDoc) (string, []byte, error) {
 
 // Update .
 // ATN: only did who owns method-name should call this.
-func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
+func (r *MethodRegistry) Update(doc *MethodDoc) (string, []byte, error) {
 	// check exist
 	method := DID(doc.ID)
 	exist, err := r.HasMethod(method)
@@ -267,7 +267,7 @@ func (r *MethodRegistry) Update(doc MethodDoc) (string, []byte, error) {
 		return "", nil, fmt.Errorf("Method update doc marshal: %w", err)
 	}
 
-	docAddr, err := r.docdb.Update(&doc)
+	docAddr, err := r.docdb.Update(doc)
 	if err != nil {
 		return "", nil, fmt.Errorf("Method update on docdb: %w", err)
 	}
@@ -348,26 +348,26 @@ func (r *MethodRegistry) Delete(method DID) error {
 }
 
 // Resolve .
-func (r *MethodRegistry) Resolve(method DID) (MethodItem, MethodDoc, error) {
+func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, error) {
 	exist, err := r.HasMethod(method)
 	if err != nil {
-		return MethodItem{}, MethodDoc{}, err
+		return nil, nil, err
 	}
 	if exist == false {
-		return MethodItem{}, MethodDoc{}, fmt.Errorf("resolve Method %s not existed", method)
+		return nil, nil, fmt.Errorf("resolve Method %s not existed", method)
 	}
 
 	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return MethodItem{}, MethodDoc{}, fmt.Errorf("Method resolve table get: %w", err)
+		return nil, nil, fmt.Errorf("Method resolve table get: %w", err)
 	}
 	itemM := item.(*MethodItem)
 	doc, err := r.docdb.Get(method, MethodDocType)
 	docM := doc.(*MethodDoc)
 	if err != nil {
-		return *itemM, MethodDoc{}, fmt.Errorf("Method resolve docdb get: %w", err)
+		return itemM, nil, fmt.Errorf("Method resolve docdb get: %w", err)
 	}
-	return *itemM, *docM, nil
+	return itemM, docM, nil
 }
 
 // MethodHasAccount checks whether account exists on the method blockchain

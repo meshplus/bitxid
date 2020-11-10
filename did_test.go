@@ -64,7 +64,7 @@ func TestDIDNew(t *testing.T) {
 	s2, err := leveldb.New(ddbPath)
 	assert.Nil(t, err)
 	c, err := DefaultBitXIDConfig()
-	c.DIDConfig.AdminDoc = diddoc
+	c.DIDConfig.AdminDoc = &diddoc
 	assert.Nil(t, err)
 	r, err = NewDIDRegistry(s1, s2, l, &c.DIDConfig)
 	assert.Nil(t, err)
@@ -87,7 +87,7 @@ func TestDIDRegisterSucceed(t *testing.T) {
 	// docHashE := sha3.Sum512(docABytes)
 	docHashE := sha256.Sum256(docABytes)
 	docAddrE := "./" + string(did)
-	docAddr, docHash, err := r.Register(diddocA)
+	docAddr, docHash, err := r.Register(&diddocA)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	strHashE := fmt.Sprintf("%x", docHashE)
@@ -101,7 +101,7 @@ func TestDIDUpdateSucceed(t *testing.T) {
 	// docHashE := sha3.Sum512(docBBytes)
 	docHashE := sha256.Sum256(docBBytes)
 	docAddrE := "./" + string(did)
-	docAddr, docHash, err := r.Update(diddocB)
+	docAddr, docHash, err := r.Update(&diddocB)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	strHashE := fmt.Sprintf("%x", docHashE)
@@ -115,7 +115,7 @@ func TestDIDResolveSucceed(t *testing.T) {
 	// docHashE := sha3.Sum512(docBBytes)
 	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
-	assert.Equal(t, diddocB, doc) // compare doc
+	assert.Equal(t, &diddocB, doc) // compare doc
 	itemE := DIDItem{
 		BasicItem{
 			ID:      did,
