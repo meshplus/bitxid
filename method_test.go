@@ -79,8 +79,7 @@ func TestMethodSetupGenesisSucceed(t *testing.T) {
 }
 
 func TestHasMethodSucceed(t *testing.T) {
-	ret1, err := mr.HasMethod(DID(mr.config.GenesisMetohd))
-	assert.Nil(t, err)
+	ret1 := mr.HasMethod(DID(mr.config.GenesisMetohd))
 	assert.Equal(t, true, ret1)
 }
 

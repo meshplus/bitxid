@@ -19,8 +19,8 @@ type DocDB interface {
 	Create(doc Doc) (string, error)
 	Update(doc Doc) (string, error)
 	Get(did DID, typ DocType) (Doc, error)
-	Delete(did DID) error
-	Has(did DID) (bool, error)
+	Delete(did DID)
+	Has(did DID) bool
 	Close() error
 }
 
@@ -29,8 +29,8 @@ type RegistryTable interface {
 	CreateItem(item TableItem) error
 	UpdateItem(item TableItem) error
 	GetItem(did DID, typ TableType) (TableItem, error)
-	HasItem(did DID) (bool, error)
-	DeleteItem(did DID) error
+	HasItem(did DID) bool
+	DeleteItem(did DID)
 	Close() error
 }
 
@@ -43,7 +43,7 @@ type MethodManager interface {
 	Resolve(method DID) (*MethodItem, *MethodDoc, error)
 	Update(doc *MethodDoc) (string, []byte, error)
 	Delete(method DID) error
-	HasMethod(method DID) (bool, error)
+	HasMethod(method DID) bool
 }
 
 // DIDManager .
@@ -52,5 +52,5 @@ type DIDManager interface {
 	Resolve(did DID) (*DIDItem, *DIDDoc, error)
 	Update(doc *DIDDoc) (string, []byte, error)
 	Delete(did DID) error
-	HasDID(did DID) (bool, error)
+	HasDID(did DID) bool
 }

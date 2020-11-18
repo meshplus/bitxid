@@ -3,7 +3,7 @@ bin
 config/*.table/
 config/*.docdb/
 config/*.db/
-
+example/
 
 .DS_Store
 .VSCodeCounter/

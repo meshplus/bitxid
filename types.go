@@ -52,6 +52,21 @@ const (
 	DIDTableType
 )
 
+// KeyType .
+type KeyType int
+
+// value of keytype
+const (
+	AES KeyType = iota
+	ThirdDES
+	RSA
+	Secp256k1
+	ECDSAP256
+	ECDSAP384
+	ECDSAP521
+	Ed25519
+)
+
 // BasicDoc is the fundamental part of doc structure
 type BasicDoc struct {
 	ID             DID      `json:"id"`

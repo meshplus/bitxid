@@ -76,8 +76,7 @@ func TestSetupDIDSucceed(t *testing.T) {
 }
 
 func testHasDIDSucceed(t *testing.T) {
-	ret1, err := r.HasDID(DID(r.config.Admin))
-	assert.Nil(t, err)
+	ret1 := r.HasDID(DID(r.config.Admin))
 	assert.Equal(t, true, ret1)
 }
 

@@ -45,8 +45,8 @@ func TestTABLECURD(t *testing.T) {
 	assert.Nil(t, err)
 
 	// test HasItem:
-	ret1, err := rt.HasItem(key)
-	assert.Nil(t, err)
+	ret1 := rt.HasItem(key)
+	// assert.Nil(t, err)
 	assert.Equal(t, false, ret1)
 	// test CreateItem:
 	err = rt.CreateItem(&item)
@@ -70,9 +70,9 @@ func TestTABLECURD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, item3, *item4.(*MethodItem))
 	// test DeleteItem:
-	err = rt.DeleteItem(key)
-	assert.Nil(t, err)
-	ret2, err := rt.HasItem(key)
-	assert.Nil(t, err)
+	rt.DeleteItem(key)
+	// assert.Nil(t, err)
+	ret2 := rt.HasItem(key)
+	// assert.Nil(t, err)
 	assert.Equal(t, false, ret2)
 }

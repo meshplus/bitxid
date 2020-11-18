@@ -33,8 +33,8 @@ func TestDBCURD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "./"+string(key), ret1)
 	// test has:
-	ret2, err := d.Has(key)
-	assert.Nil(t, err)
+	ret2 := d.Has(key)
+	// assert.Nil(t, err)
 	assert.Equal(t, true, ret2)
 	// test get:
 	ret3, err := d.Get(key, DIDDocType)
@@ -48,9 +48,9 @@ func TestDBCURD(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, *ret5.(*DIDDoc), valueUpdated)
 	// test delete:
-	err = d.Delete(key)
-	assert.Nil(t, err)
-	ret6, err := d.Has(key)
-	assert.Nil(t, err)
+	d.Delete(key)
+	// assert.Nil(t, err)
+	ret6 := d.Has(key)
+	// assert.Nil(t, err)
 	assert.Equal(t, false, ret6)
 }

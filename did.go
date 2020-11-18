@@ -137,10 +137,7 @@ func (r *DIDRegistry) GetMethod() DID {
 // ATN: only did who owns did-name should call this
 func (r *DIDRegistry) Register(doc *DIDDoc) (string, []byte, error) {
 	did := DID(doc.ID)
-	exist, err := r.HasDID(did)
-	if err != nil {
-		return "", nil, fmt.Errorf("register DID: %w", err)
-	}
+	exist := r.HasDID(did)
 	if exist == true {
 		return "", nil, fmt.Errorf("DID %s already existed", did)
 	}
@@ -175,10 +172,7 @@ func (r *DIDRegistry) Register(doc *DIDDoc) (string, []byte, error) {
 func (r *DIDRegistry) Update(doc *DIDDoc) (string, []byte, error) {
 	did := DID(doc.ID)
 	// check exist
-	exist, err := r.HasDID(did)
-	if err != nil {
-		return "", nil, err
-	}
+	exist := r.HasDID(did)
 	if exist == false {
 		return "", nil, fmt.Errorf("DID %s not existed", did)
 	}
@@ -213,10 +207,7 @@ func (r *DIDRegistry) Update(doc *DIDDoc) (string, []byte, error) {
 
 // Resolve looks up local-chain to resolve did.
 func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, error) {
-	exist, err := r.HasDID(did)
-	if err != nil {
-		return nil, nil, err
-	}
+	exist := r.HasDID(did)
 	if exist == false {
 		return nil, nil, fmt.Errorf("DID %s not existed", did)
 	}
@@ -237,10 +228,7 @@ func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, error) {
 // Freeze .
 // ATN: only admin should call this.
 func (r *DIDRegistry) Freeze(did DID) error {
-	exist, err := r.HasDID(did)
-	if err != nil {
-		return err
-	}
+	exist := r.HasDID(did)
 	if exist == false {
 		return fmt.Errorf("DID %s not existed", did)
 	}
@@ -250,10 +238,7 @@ func (r *DIDRegistry) Freeze(did DID) error {
 // UnFreeze .
 // ATN: only admin should call this.
 func (r *DIDRegistry) UnFreeze(did DID) error {
-	exist, err := r.HasDID(did)
-	if err != nil {
-		return err
-	}
+	exist := r.HasDID(did)
 	if exist == false {
 		return fmt.Errorf("DID %s not existed", did)
 	}
@@ -266,24 +251,15 @@ func (r *DIDRegistry) Delete(did DID) error {
 	if err != nil {
 		return fmt.Errorf("delete DID aduit status: %w", err)
 	}
-	err = r.docdb.Delete(did)
-	if err != nil {
-		return fmt.Errorf("delete DID on docdb: %w", err)
-	}
-	err = r.table.DeleteItem(did)
-	if err != nil {
-		return fmt.Errorf("delete DID on table: %w", err)
-	}
+	r.docdb.Delete(did)
+	r.table.DeleteItem(did)
 	return nil
 }
 
 // HasDID .
-func (r *DIDRegistry) HasDID(did DID) (bool, error) {
-	exist, err := r.table.HasItem(did)
-	if err != nil {
-		return false, fmt.Errorf("DID has: %w", err)
-	}
-	return exist, nil
+func (r *DIDRegistry) HasDID(did DID) bool {
+	exist := r.table.HasItem(did)
+	return exist
 }
 
 func (r *DIDRegistry) getDIDStatus(did DID) StatusType {

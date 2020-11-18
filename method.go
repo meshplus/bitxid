@@ -9,15 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//
-const (
-	BLC int = iota
-	DLT
-)
-
-// Size of hash byte
-const Size int = 64
-
 var _ Doc = (*MethodDoc)(nil)
 
 // MethodDoc .
@@ -156,10 +147,7 @@ func (r *MethodRegistry) Apply(caller DID, method DID) error {
 		return fmt.Errorf("Method name is not standard")
 	}
 	// check if Method exists
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return err
-	}
+	exist := r.HasMethod(method)
 	if exist == true {
 		return fmt.Errorf("apply Method %s already existed", method)
 	}
@@ -169,7 +157,7 @@ func (r *MethodRegistry) Apply(caller DID, method DID) error {
 		return fmt.Errorf("can not apply Method under status: %d", status)
 	}
 	// creates item in table
-	err = r.table.CreateItem(
+	err := r.table.CreateItem(
 		&MethodItem{BasicItem{
 			ID:     DID(method),
 			Status: ApplyAudit},
@@ -184,10 +172,7 @@ func (r *MethodRegistry) Apply(caller DID, method DID) error {
 // AuditApply .
 // ATNS: only admin should call this.
 func (r *MethodRegistry) AuditApply(method DID, result bool) error {
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return fmt.Errorf("auditapply Method %s not existed", method)
 	}
@@ -195,6 +180,7 @@ func (r *MethodRegistry) AuditApply(method DID, result bool) error {
 	if !(status == ApplyAudit || status == ApplyFailed) {
 		return fmt.Errorf("can not auditapply under status: %d", status)
 	}
+	var err error = nil
 	if result {
 		err = r.auditStatus(method, ApplySuccess)
 	} else {
@@ -207,10 +193,7 @@ func (r *MethodRegistry) AuditApply(method DID, result bool) error {
 // ATN: only did who owns method-name should call this
 func (r *MethodRegistry) Register(doc *MethodDoc) (string, []byte, error) {
 	method := DID(doc.ID)
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return "", nil, err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return "", nil, fmt.Errorf("register Method %s not existed", method)
 	}
@@ -250,10 +233,7 @@ func (r *MethodRegistry) Register(doc *MethodDoc) (string, []byte, error) {
 func (r *MethodRegistry) Update(doc *MethodDoc) (string, []byte, error) {
 	// check exist
 	method := DID(doc.ID)
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return "", nil, err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return "", nil, fmt.Errorf("update Method %s not existed", method)
 	}
@@ -291,10 +271,7 @@ func (r *MethodRegistry) Update(doc *MethodDoc) (string, []byte, error) {
 // Audit .
 // ATN: only admin should call this.
 func (r *MethodRegistry) Audit(method DID, status StatusType) error {
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return fmt.Errorf("audit Method %s not existed", method)
 	}
@@ -304,10 +281,7 @@ func (r *MethodRegistry) Audit(method DID, status StatusType) error {
 // Freeze .
 // ATN: only admdin should call this.
 func (r *MethodRegistry) Freeze(method DID) error {
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return fmt.Errorf("freeze Method %s not existed", method)
 	}
@@ -317,10 +291,7 @@ func (r *MethodRegistry) Freeze(method DID) error {
 // UnFreeze .
 // ATN: only admdin should call this.
 func (r *MethodRegistry) UnFreeze(method DID) error {
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return fmt.Errorf("unfreeze Method %s not existed", method)
 	}
@@ -334,25 +305,14 @@ func (r *MethodRegistry) Delete(method DID) error {
 	if err != nil {
 		return fmt.Errorf("Method delete status aduit: %w", err)
 	}
-
-	err = r.docdb.Delete(method)
-	if err != nil {
-		return fmt.Errorf("Method delete docdb: %w", err)
-	}
-	err = r.table.DeleteItem(method)
-	if err != nil {
-		return fmt.Errorf("Method delete table: %w", err)
-	}
-
+	r.docdb.Delete(method)
+	r.table.DeleteItem(method)
 	return nil
 }
 
 // Resolve .
 func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, error) {
-	exist, err := r.HasMethod(method)
-	if err != nil {
-		return nil, nil, err
-	}
+	exist := r.HasMethod(method)
 	if exist == false {
 		return nil, nil, fmt.Errorf("resolve Method %s not existed", method)
 	}
@@ -376,12 +336,9 @@ func (r *MethodRegistry) MethodHasAccount(method string, account string) {
 }
 
 // HasMethod .
-func (r *MethodRegistry) HasMethod(method DID) (bool, error) {
-	exist, err := r.table.HasItem(method)
-	if err != nil {
-		return false, fmt.Errorf("has method: %w", err)
-	}
-	return exist, nil
+func (r *MethodRegistry) HasMethod(method DID) bool {
+	exist := r.table.HasItem(method)
+	return exist
 }
 
 func (r *MethodRegistry) getMethodStatus(method DID) StatusType {

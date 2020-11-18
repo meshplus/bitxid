@@ -24,7 +24,7 @@ func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
 }
 
 // Has whether db has the item(by key)
-func (d *KVDocDB) Has(did DID) (bool, error) {
+func (d *KVDocDB) Has(did DID) bool {
 	return d.store.Has([]byte(did))
 }
 
@@ -34,10 +34,7 @@ func (d *KVDocDB) Create(doc Doc) (string, error) {
 	if did == DID("") {
 		return "", fmt.Errorf("kvdb create doc id is null")
 	}
-	exist, err := d.Has(did)
-	if err != nil {
-		return "", err
-	}
+	exist := d.Has(did)
 	if exist == true {
 		return "", fmt.Errorf("Item %s already existed in kvdb", did)
 	}
@@ -45,10 +42,7 @@ func (d *KVDocDB) Create(doc Doc) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = d.store.Put([]byte(did), valueBytes)
-	if err != nil {
-		return "", fmt.Errorf("kvdb store: %w", err)
-	}
+	d.store.Put([]byte(did), valueBytes)
 	return d.basicAddr + "/" + string(did), nil
 }
 
@@ -58,10 +52,7 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 	if did == DID("") {
 		return "", fmt.Errorf("kvdb update doc id is null")
 	}
-	exist, err := d.Has(did)
-	if err != nil {
-		return "", err
-	}
+	exist := d.Has(did)
 	if exist == false {
 		return "", fmt.Errorf("Item %s not existed in kvdb", did)
 	}
@@ -69,37 +60,28 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = d.store.Put([]byte(did), valueBytes)
-	if err != nil {
-		return "", fmt.Errorf("kvdb store: %w", err)
-	}
+	d.store.Put([]byte(did), valueBytes)
 	return d.basicAddr + "/" + string(did), nil
 }
 
 // Get .
 func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
-	exist, err := d.Has(did)
-	if err != nil {
-		return nil, err
-	}
+	exist := d.Has(did)
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
 	}
-	valueBytes, err := d.store.Get([]byte(did))
-	if err != nil {
-		return nil, fmt.Errorf("kvdb store: %w", err)
-	}
+	valueBytes := d.store.Get([]byte(did))
 	switch typ {
 	case DIDDocType:
 		dt := &DIDDoc{}
-		err = dt.Unmarshal(valueBytes)
+		err := dt.Unmarshal(valueBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvdb unmarshal did doc: %w", err)
 		}
 		return dt, nil
 	case MethodDocType:
 		mt := &MethodDoc{}
-		err = mt.Unmarshal(valueBytes)
+		err := mt.Unmarshal(valueBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvdb unmarshal method doc: %w", err)
 		}
@@ -110,12 +92,8 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 }
 
 // Delete .
-func (d *KVDocDB) Delete(did DID) error {
-	err := d.store.Delete([]byte(did))
-	if err != nil {
-		return fmt.Errorf("kvdb store: %w", err)
-	}
-	return nil
+func (d *KVDocDB) Delete(did DID) {
+	d.store.Delete([]byte(did))
 }
 
 // Close .
