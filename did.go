@@ -70,7 +70,7 @@ type DIDRegistry struct {
 }
 
 // NewDIDRegistry news a DIDRegistry
-func NewDIDRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger, dc *DIDConfig) (*DIDRegistry, error) {
+func NewDIDRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger) (*DIDRegistry, error) {
 	rt, err := NewKVTable(ts)
 	if err != nil {
 		return nil, fmt.Errorf("DID new table: %w", err)
@@ -79,11 +79,12 @@ func NewDIDRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger
 	if err != nil {
 		return nil, fmt.Errorf("DID new docdb: %w", err)
 	}
+	conf, err := DefaultBitXIDConfig()
 	return &DIDRegistry{
-		config: dc,
 		table:  rt,
 		docdb:  db,
 		logger: l,
+		config: &conf.DIDConfig,
 		admins: []DID{""},
 	}, nil
 }

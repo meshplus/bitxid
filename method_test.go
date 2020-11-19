@@ -67,9 +67,7 @@ func TestMethodNew(t *testing.T) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	c, err := DefaultBitXIDConfig()
-	assert.Nil(t, err)
-	mr, err = NewMethodRegistry(s1, s2, l, &c.MethodConfig)
+	mr, err = NewMethodRegistry(s1, s2, l)
 	assert.Nil(t, err)
 }
 

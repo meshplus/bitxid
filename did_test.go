@@ -63,10 +63,7 @@ func TestDIDNew(t *testing.T) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(ddbPath)
 	assert.Nil(t, err)
-	c, err := DefaultBitXIDConfig()
-	c.DIDConfig.AdminDoc = &diddoc
-	assert.Nil(t, err)
-	r, err = NewDIDRegistry(s1, s2, l, &c.DIDConfig)
+	r, err = NewDIDRegistry(s1, s2, l)
 	assert.Nil(t, err)
 }
 

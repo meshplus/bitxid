@@ -69,7 +69,7 @@ func (mi *MethodItem) GetID() DID {
 }
 
 // NewMethodRegistry news a MethodRegistry
-func NewMethodRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger, mc *MethodConfig) (*MethodRegistry, error) {
+func NewMethodRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger) (*MethodRegistry, error) {
 	rt, err := NewKVTable(ts)
 	if err != nil {
 		return nil, fmt.Errorf("Method new table: %w", err)
@@ -78,11 +78,12 @@ func NewMethodRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLog
 	if err != nil {
 		return nil, fmt.Errorf("Method new docdb: %w", err)
 	}
+	conf, err := DefaultBitXIDConfig()
 	return &MethodRegistry{
 		table:  rt,
 		docdb:  db,
 		logger: l,
-		config: mc,
+		config: &conf.MethodConfig,
 		admins: []DID{""},
 	}, nil
 }
