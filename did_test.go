@@ -105,7 +105,7 @@ func TestDIDUpdateSucceed(t *testing.T) {
 	assert.Equal(t, docAddrE, docAddr)
 }
 func TestDIDResolveSucceed(t *testing.T) {
-	item, doc, err := r.Resolve(did)
+	item, doc, _, err := r.Resolve(did)
 	docBBytes, err := Struct2Bytes(diddocB)
 	assert.Nil(t, err)
 	// docHashE := sha3.Sum512(docBBytes)
@@ -128,7 +128,7 @@ func TestDIDResolveSucceed(t *testing.T) {
 func TestDIDFreezeSucceed(t *testing.T) {
 	err := r.Freeze(did)
 	assert.Nil(t, err)
-	item, _, err := r.Resolve(did)
+	item, _, _, err := r.Resolve(did)
 	assert.Nil(t, err)
 	assert.Equal(t, Frozen, item.Status)
 }
@@ -136,7 +136,7 @@ func TestDIDFreezeSucceed(t *testing.T) {
 func TestDIDUnFreezeSucceed(t *testing.T) {
 	err := r.UnFreeze(did)
 	assert.Nil(t, err)
-	item, _, err := r.Resolve(did)
+	item, _, _, err := r.Resolve(did)
 	assert.Nil(t, err)
 	assert.Equal(t, Normal, item.Status)
 }

@@ -312,23 +312,23 @@ func (r *MethodRegistry) Delete(method DID) error {
 }
 
 // Resolve .
-func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, error) {
+func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, error) {
 	exist := r.HasMethod(method)
 	if exist == false {
-		return nil, nil, fmt.Errorf("resolve Method %s not existed", method)
+		return nil, nil, false, fmt.Errorf("resolve Method %s not existed", method)
 	}
 
 	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Method resolve table get: %w", err)
+		return nil, nil, false, fmt.Errorf("Method resolve table get: %w", err)
 	}
 	itemM := item.(*MethodItem)
 	doc, err := r.docdb.Get(method, MethodDocType)
-	docM := doc.(*MethodDoc)
 	if err != nil {
-		return itemM, nil, fmt.Errorf("Method resolve docdb get: %w", err)
+		return itemM, nil, true, fmt.Errorf("Method resolve docdb get: %w", err)
 	}
-	return itemM, docM, nil
+	docM := doc.(*MethodDoc)
+	return itemM, docM, true, nil
 }
 
 // MethodHasAccount checks whether account exists on the method blockchain

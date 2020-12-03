@@ -107,7 +107,7 @@ func TestMethodRegisterSucceed(t *testing.T) {
 	docAddr, docHash, err := mr.Register(&mdocA)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
-	item, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
@@ -132,7 +132,7 @@ func TestMethodUpdateSucceed(t *testing.T) {
 func TestMethodAuditRegisterSucceed(t *testing.T) {
 	err := mr.Audit(method, RegisterSuccess)
 	assert.Nil(t, err)
-	item, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, RegisterSuccess, item.Status)
 }
@@ -140,7 +140,7 @@ func TestMethodAuditRegisterSucceed(t *testing.T) {
 func TestMethodAuditUpdateSucceed(t *testing.T) {
 	err := mr.Audit(method, UpdateSuccess)
 	assert.Nil(t, err)
-	item, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, UpdateSuccess, item.Status)
 }
@@ -148,7 +148,7 @@ func TestMethodAuditUpdateSucceed(t *testing.T) {
 func TestMethodFreezeSucceed(t *testing.T) {
 	err := mr.Freeze(method)
 	assert.Nil(t, err)
-	item, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, Frozen, item.Status)
 }
@@ -156,14 +156,14 @@ func TestMethodFreezeSucceed(t *testing.T) {
 func TestMethodUnFreezeSucceed(t *testing.T) {
 	err := mr.UnFreeze(method)
 	assert.Nil(t, err)
-	item, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, Normal, item.Status)
 }
 
 func TestMethodResolveSucceed(t *testing.T) {
 	docAddrE := "./" + string(method)
-	item, doc, err := mr.Resolve(method)
+	item, doc, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, &mdocB, doc) // compare doc
 	itemE := MethodItem{
