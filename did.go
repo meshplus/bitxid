@@ -207,23 +207,23 @@ func (r *DIDRegistry) Update(doc *DIDDoc) (string, []byte, error) {
 }
 
 // Resolve looks up local-chain to resolve did.
-func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, error) {
+func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, bool, error) {
 	exist := r.HasDID(did)
 	if exist == false {
-		return nil, nil, fmt.Errorf("DID %s not existed", did)
+		return nil, nil, false, fmt.Errorf("DID %s not existed", did)
 	}
 
 	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
-		return nil, nil, fmt.Errorf("resolve DID table get: %w", err)
+		return nil, nil, false, fmt.Errorf("resolve DID table get: %w", err)
 	}
 	itemD := item.(*DIDItem)
 	doc, err := r.docdb.Get(did, DIDDocType)
 	if err != nil {
-		return itemD, nil, fmt.Errorf("resolve DID docdb get: %w", err)
+		return itemD, nil, true, fmt.Errorf("resolve DID docdb get: %w", err)
 	}
 	docD := doc.(*DIDDoc)
-	return itemD, docD, nil
+	return itemD, docD, true, nil
 }
 
 // Freeze .
