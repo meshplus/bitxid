@@ -22,9 +22,13 @@ func NewKVTable(S storage.Storage) (*KVTable, error) {
 	}, nil
 }
 
+func tbKey(id DID) []byte {
+	return []byte("tb-" + string(id))
+}
+
 // HasItem whether table has the item(by key)
 func (r *KVTable) HasItem(did DID) bool {
-	exists := r.store.Has([]byte(did))
+	exists := r.store.Has(tbKey(did))
 	return exists
 }
 
@@ -34,7 +38,7 @@ func (r *KVTable) setItem(did DID, item TableItem) error {
 	if err != nil {
 		return fmt.Errorf("kvtable marshal: %w", err)
 	}
-	r.store.Put([]byte(did), bitem)
+	r.store.Put(tbKey(did), bitem)
 	return nil
 }
 
@@ -71,7 +75,7 @@ func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	itemBytes := r.store.Get([]byte(did))
+	itemBytes := r.store.Get(tbKey(did))
 	switch typ {
 	case DIDTableType:
 		di := &DIDItem{}
@@ -94,7 +98,7 @@ func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
 
 // DeleteItem without any checks
 func (r *KVTable) DeleteItem(did DID) {
-	r.store.Delete([]byte(did))
+	r.store.Delete(tbKey(did))
 }
 
 // Close .

@@ -12,7 +12,6 @@ type KVDocDB struct {
 	store     storage.Storage
 }
 
-// var dblogger = log.NewWithModule("doc.DB")
 var _ DocDB = (*KVDocDB)(nil)
 
 // NewKVDocDB .
@@ -23,9 +22,13 @@ func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
 	}, nil
 }
 
+func docKey(id DID) []byte {
+	return []byte("doc-" + string(id))
+}
+
 // Has whether db has the item(by key)
 func (d *KVDocDB) Has(did DID) bool {
-	return d.store.Has([]byte(did))
+	return d.store.Has(docKey(did))
 }
 
 // Create .
@@ -42,7 +45,7 @@ func (d *KVDocDB) Create(doc Doc) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	d.store.Put([]byte(did), valueBytes)
+	d.store.Put(docKey(did), valueBytes)
 	return d.basicAddr + "/" + string(did), nil
 }
 
@@ -60,7 +63,7 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	d.store.Put([]byte(did), valueBytes)
+	d.store.Put(docKey(did), valueBytes)
 	return d.basicAddr + "/" + string(did), nil
 }
 
@@ -70,7 +73,7 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
 	}
-	valueBytes := d.store.Get([]byte(did))
+	valueBytes := d.store.Get(docKey(did))
 	switch typ {
 	case DIDDocType:
 		dt := &DIDDoc{}
@@ -93,7 +96,7 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 
 // Delete .
 func (d *KVDocDB) Delete(did DID) {
-	d.store.Delete([]byte(did))
+	d.store.Delete(docKey(did))
 }
 
 // Close .
