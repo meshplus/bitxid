@@ -31,8 +31,8 @@ type DIDConfig struct {
 
 // MethodConfig .
 type MethodConfig struct {
+	Mode          RegistryMode
 	Admin         DID        `toml:"admin" json:"admin"`
-	Addr          string     `toml:"addr" json:"addr"`
 	IsRoot        bool       `toml:"is_root" json:"is_root"`
 	GenesisMetohd DID        `toml:"genesis_metohd" json:"genesis_metohd"`
 	GenesisDoc    *MethodDoc `toml:"genesis_doc" json:"genesis_doc"`
@@ -58,7 +58,7 @@ func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 		MethodConfig: MethodConfig{
 			Admin: "did:bitxhub:relayroot:0x00000001",
 			// AdminDoc:      getAdminDoc(),
-			Addr:          ".",
+			// Addr:          ".",
 			IsRoot:        true,
 			GenesisMetohd: "did:bitxhub:relayroot:.",
 			GenesisDoc:    getGenesisMetohd(),

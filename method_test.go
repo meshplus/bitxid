@@ -67,7 +67,7 @@ func TestMethodNew(t *testing.T) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	mr, err = NewMethodRegistry(s1, s2, l)
+	mr, err = NewMethodRegistry(s1, l, WithAdmin(DID("")), WithDocStorage(s2))
 	assert.Nil(t, err)
 }
 
@@ -77,7 +77,7 @@ func TestMethodSetupGenesisSucceed(t *testing.T) {
 }
 
 func TestHasMethodSucceed(t *testing.T) {
-	ret1 := mr.HasMethod(DID(mr.config.GenesisMetohd))
+	ret1 := mr.HasMethod(DID(mr.genesisMetohd))
 	assert.Equal(t, true, ret1)
 }
 
@@ -104,7 +104,7 @@ func TestMethodRegisterSucceed(t *testing.T) {
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./" + string(method)
 
-	docAddr, docHash, err := mr.Register(&mdocA)
+	docAddr, docHash, err := mr.Register(DocOption{Content: &mdocA})
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	item, _, _, err := mr.Resolve(method)
@@ -122,27 +122,27 @@ func TestMethodUpdateSucceed(t *testing.T) {
 	strHashE := fmt.Sprintf("%x", docHashE)
 	docAddrE := "./" + string(method)
 
-	docAddr, docHash, err := mr.Update(&mdocB)
+	docAddr, docHash, err := mr.Update(DocOption{Content: &mdocB})
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 }
 
-func TestMethodAuditRegisterSucceed(t *testing.T) {
-	err := mr.Audit(method, RegisterSuccess)
+func TestMethodAuditUpdateSucceed(t *testing.T) {
+	err := mr.Audit(method, RegisterFailed)
 	assert.Nil(t, err)
 	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
-	assert.Equal(t, RegisterSuccess, item.Status)
+	assert.Equal(t, RegisterFailed, item.Status)
 }
 
-func TestMethodAuditUpdateSucceed(t *testing.T) {
-	err := mr.Audit(method, UpdateSuccess)
+func TestMethodAuditStatusNormal(t *testing.T) {
+	err := mr.Audit(method, Normal)
 	assert.Nil(t, err)
 	item, _, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
-	assert.Equal(t, UpdateSuccess, item.Status)
+	assert.Equal(t, Normal, item.Status)
 }
 
 func TestMethodFreezeSucceed(t *testing.T) {
@@ -176,14 +176,6 @@ func TestMethodResolveSucceed(t *testing.T) {
 	assert.Equal(t, itemE.Owner, item.Owner)
 	assert.Equal(t, itemE.DocAddr, item.DocAddr)
 	assert.Equal(t, itemE.Status, item.Status)
-}
-
-func TestGetMethodStatus(t *testing.T) {
-
-}
-
-func TestMethodAuditStatus(t *testing.T) {
-
 }
 
 func TestMethodDeleteSucceed(t *testing.T) {

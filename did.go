@@ -179,7 +179,7 @@ func (r *DIDRegistry) Update(doc *DIDDoc) (string, []byte, error) {
 	}
 	status := r.getDIDStatus(did)
 	if status != Normal {
-		return "", nil, fmt.Errorf("can not update DID under current status: %d", status)
+		return "", nil, fmt.Errorf("can not update DID under current status: %s", status)
 	}
 	docBytes, err := doc.Marshal()
 	if err != nil {
