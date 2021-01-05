@@ -75,31 +75,20 @@ type MethodRegistry struct {
 func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func(*MethodRegistry)) (*MethodRegistry, error) {
 	rt, _ := NewKVTable(ts)
 	db, _ := NewKVDocDB(nil)
-
+	doc := genesisMetohdDoc()
 	mr := &MethodRegistry{ // default config
 		mode:          ExternalDocDB,
 		table:         rt,
 		docdb:         db,
 		logger:        l,
-		admins:        []DID{"did:bitxhub:relayroot:0x00000001"},
+		admins:        []DID{genesisDIDDoc().GetID()},
 		isRoot:        true,
-		genesisMetohd: "did:bitxhub:relayroot:.",
+		genesisMetohd: doc.GetID(),
 		genesisDoc: DocOption{
-			Content: &MethodDoc{
-				BasicDoc: BasicDoc{
-					ID:   "did:bitxhub:relayroot:.",
-					Type: "method",
-					PublicKey: []PubKey{
-						{ID: "KEY#1",
-							Type:         "Secp256k1",
-							PublicKeyPem: "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71"},
-					},
-					Controller: DID("did:bitxhub:relayroot:0x00000001"),
-					Authentication: []Auth{
-						{PublicKey: []string{"KEY#1"}},
-					},
-				},
-			},
+			ID:      doc.GetID(),
+			Addr:    ".",
+			Hash:    []byte{0},
+			Content: doc,
 		},
 	}
 
@@ -110,19 +99,19 @@ func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func
 	return mr, nil
 }
 
-// WithDocStorage .
-func WithDocStorage(ds storage.Storage) func(*MethodRegistry) {
-	return func(m *MethodRegistry) {
+// WithMethodDocStorage .
+func WithMethodDocStorage(ds storage.Storage) func(*MethodRegistry) {
+	return func(mr *MethodRegistry) {
 		db, _ := NewKVDocDB(ds)
-		m.docdb = db
-		m.mode = InternalDocDB
+		mr.docdb = db
+		mr.mode = InternalDocDB
 	}
 }
 
-// WithAdmin .
-func WithAdmin(a DID) func(*MethodRegistry) {
-	return func(m *MethodRegistry) {
-		m.admins = []DID{a}
+// WithMethodAdmin .
+func WithMethodAdmin(a DID) func(*MethodRegistry) {
+	return func(mr *MethodRegistry) {
+		mr.admins = []DID{a}
 	}
 }
 
@@ -133,36 +122,36 @@ func WithGenesisMetohd(m DID) func(*MethodRegistry) {
 	}
 }
 
-// WithGenesisDoc .
-func WithGenesisDoc(doc *MethodDoc) func(*MethodRegistry) {
+// WithGenesisMethodDoc .
+func WithGenesisMethodDoc(docOption DocOption) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
-		mr.genesisDoc = DocOption{Content: doc}
+		mr.genesisDoc = docOption
 	}
 }
 
 // SetupGenesis set up genesis to boot the whole methed system
 func (r *MethodRegistry) SetupGenesis() error { // docOption DocOption
 	if !r.isRoot {
-		return fmt.Errorf("Method genesis registry not root")
+		return fmt.Errorf("genesis registry not root")
 	}
 	if r.genesisMetohd != r.genesisDoc.Content.(*MethodDoc).ID {
-		return fmt.Errorf("Method genesis Method not matched with doc")
+		return fmt.Errorf("genesis Method not matched with doc")
 	}
 
 	// register method
 	err := r.Apply(r.admins[0], r.genesisMetohd)
 	if err != nil {
-		return fmt.Errorf("Method genesis apply err: %w", err)
+		return fmt.Errorf("genesis apply err: %w", err)
 	}
 
 	err = r.AuditApply(r.genesisMetohd, true)
 	if err != nil {
-		return fmt.Errorf("Method genesis audit err: %w", err)
+		return fmt.Errorf("genesis audit err: %w", err)
 	}
 
 	_, _, err = r.Register(r.genesisDoc)
 	if err != nil {
-		return fmt.Errorf("Method genesis register err: %w", err)
+		return fmt.Errorf("genesis register err: %w", err)
 	}
 
 	return nil
@@ -249,59 +238,26 @@ func (r *MethodRegistry) Synchronize(item *MethodItem) error {
 // Register ties method name to a method doc
 // ATN: only did who owns method-name should call this
 func (r *MethodRegistry) Register(docOption DocOption) (string, []byte, error) { // doc *MethodDoc
-	return r.update(docOption, ApplySuccess, Normal)
+	return r.updateByStatus(docOption, ApplySuccess, Normal)
 }
 
 // Update .
 // ATN: only did who owns method-name should call this.
 func (r *MethodRegistry) Update(docOption DocOption) (string, []byte, error) {
-	return r.update(docOption, Normal, Normal)
+	return r.updateByStatus(docOption, Normal, Normal)
 }
 
 // update with expected status
-func (r *MethodRegistry) update(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, error) {
-	var docAddr string
-	var docHash []byte
-	var method DID
-	if r.mode == InternalDocDB {
-		// check exist
-		doc := docOption.Content.(*MethodDoc)
-		method = doc.GetID()
-		status := r.getMethodStatus(method)
-		if status != expectedStatus {
-			return "", nil, fmt.Errorf("Method %s is under status: %s, expectd status: %s", method, status, expectedStatus)
-		}
+func (r *MethodRegistry) updateByStatus(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, error) {
 
-		docBytes, err := doc.Marshal()
-		if err != nil {
-			return "", nil, fmt.Errorf("doc marshal: %w ", err)
-		}
-
-		if r.docdb.Has(doc.GetID()) {
-			docAddr, err = r.docdb.Update(doc)
-		} else {
-			docAddr, err = r.docdb.Create(doc)
-		}
-
-		if err != nil {
-			return "", nil, fmt.Errorf("update docdb: %w ", err)
-		}
-
-		docHash32 := sha256.Sum256(docBytes)
-		docHash = docHash32[:]
-	} else {
-		method = docOption.ID
-		docAddr = docOption.Addr
-		docHash = docOption.Hash
-		status := r.getMethodStatus(method)
-		if status != expectedStatus {
-			return "", nil, fmt.Errorf("Method %s is under status: %s, expectd status: %s", method, status, expectedStatus)
-		}
+	docAddr, docHash, method, err := r.updateDocdbOrNot(docOption, expectedStatus, status)
+	if err != nil {
+		return "", nil, err
 	}
 
 	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("table get item: %w ", err)
+		return docAddr, docHash, fmt.Errorf("table get item: %w ", err)
 	}
 	itemM := item.(*MethodItem)
 	itemM.DocAddr = docAddr
@@ -313,6 +269,48 @@ func (r *MethodRegistry) update(docOption DocOption, expectedStatus StatusType, 
 	}
 
 	return docAddr, docHash, nil
+}
+
+func (r *MethodRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, DID, error) {
+	var docAddr string
+	var docHash []byte
+	var method DID
+	if r.mode == InternalDocDB {
+		// check exist
+		doc := docOption.Content.(*MethodDoc)
+		method = doc.GetID()
+		status := r.getMethodStatus(method)
+		if status != expectedStatus {
+			return "", nil, "", fmt.Errorf("Method %s is under status: %s, expected status: %s", method, status, expectedStatus)
+		}
+
+		docBytes, err := doc.Marshal()
+		if err != nil {
+			return "", nil, "", fmt.Errorf("doc marshal: %w ", err)
+		}
+
+		if expectedStatus == ApplySuccess { // register
+			docAddr, err = r.docdb.Create(doc)
+		} else { // update
+			docAddr, err = r.docdb.Update(doc)
+		}
+
+		if err != nil {
+			return "", nil, "", fmt.Errorf("update docdb: %w ", err)
+		}
+
+		docHash32 := sha256.Sum256(docBytes)
+		docHash = docHash32[:]
+	} else {
+		method = docOption.ID
+		docAddr = docOption.Addr
+		docHash = docOption.Hash
+		status := r.getMethodStatus(method)
+		if status != expectedStatus {
+			return "", nil, "", fmt.Errorf("Method %s is under status: %s, expected status: %s", method, status, expectedStatus)
+		}
+	}
+	return docAddr, docHash, method, nil
 }
 
 // Audit .
@@ -362,7 +360,8 @@ func (r *MethodRegistry) Delete(method DID) error {
 	return nil
 }
 
-// Resolve .
+// Resolve looks up local-chain to resolve method.
+// @*DIDDoc returns nil if mode is ExternalDocDB
 func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, error) {
 	exist := r.HasMethod(method)
 	if exist == false {
@@ -374,15 +373,15 @@ func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, err
 	}
 	itemM := item.(*MethodItem)
 
-	docM := &MethodDoc{}
 	if r.mode == InternalDocDB {
 		doc, err := r.docdb.Get(method, MethodDocType)
 		if err != nil {
 			return itemM, nil, true, fmt.Errorf("Method resolve docdb get: %w", err)
 		}
-		docM = doc.(*MethodDoc)
+		docM := doc.(*MethodDoc)
+		return itemM, docM, true, nil
 	}
-	return itemM, docM, true, nil
+	return itemM, nil, true, nil
 }
 
 // HasMethod .
@@ -398,7 +397,7 @@ func (r *MethodRegistry) getMethodStatus(method DID) StatusType {
 	item, err := r.table.GetItem(method, MethodTableType)
 	if err != nil {
 		r.logger.Error("method status get item:", err)
-		return Error
+		return BadStatus
 	}
 	itemM := item.(*MethodItem)
 	return itemM.Status

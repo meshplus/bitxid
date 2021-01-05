@@ -25,9 +25,10 @@ type DID string
 type StatusType string
 
 // the rule of status code:
-// @Normal = AuditSuccess or Unfrozen
+// @BadStatus: something went wrong during get status
+// @Normal: AuditSuccess or Unfrozen
 const (
-	Error          StatusType = "Error"
+	BadStatus      StatusType = "BadStatus"
 	Initial        StatusType = "Initial"
 	ApplyAudit     StatusType = "ApplyAudit"
 	ApplyFailed    StatusType = "ApplyFailed"

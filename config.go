@@ -61,7 +61,7 @@ func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 			// Addr:          ".",
 			IsRoot:        true,
 			GenesisMetohd: "did:bitxhub:relayroot:.",
-			GenesisDoc:    getGenesisMetohd(),
+			GenesisDoc:    genesisMetohdDoc(),
 		},
 	}, nil
 }
@@ -83,22 +83,43 @@ func getAdminDoc() *DIDDoc {
 	return doc
 }
 
-func getGenesisMetohd() *MethodDoc {
-	doc := &MethodDoc{}
-	doc.ID = "did:bitxhub:relayroot:."
-	doc.Type = "method"
-	pk := PubKey{
-		ID:           "KEY#1",
-		Type:         "Secp256k1",
-		PublicKeyPem: "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71",
+func genesisDIDDoc() *DIDDoc {
+	return &DIDDoc{
+		BasicDoc: BasicDoc{
+			ID:   "did:bitxhub:appchain001:0x00000001",
+			Type: "user",
+			PublicKey: []PubKey{
+				{
+					ID:           "KEY#1",
+					Type:         "Ed25519",
+					PublicKeyPem: "H3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV",
+				},
+			},
+			Authentication: []Auth{
+				{PublicKey: []string{"KEY#1"}},
+			},
+		},
 	}
-	doc.PublicKey = []PubKey{pk}
-	doc.Controller = DID("did:bitxhub:relayroot:0x12345678")
-	auth := Auth{
-		PublicKey: []string{"KEY#1"},
+}
+
+func genesisMetohdDoc() *MethodDoc {
+	return &MethodDoc{
+		BasicDoc: BasicDoc{
+			ID:   "did:bitxhub:relayroot:.",
+			Type: "method",
+			PublicKey: []PubKey{
+				{
+					ID:           "KEY#1",
+					Type:         "Secp256k1",
+					PublicKeyPem: "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71",
+				},
+			},
+			Controller: DID("did:bitxhub:relayroot:0x00000001"),
+			Authentication: []Auth{
+				{PublicKey: []string{"KEY#1"}},
+			},
+		},
 	}
-	doc.Authentication = []Auth{auth}
-	return doc
 }
 
 // UnmarshalConfig .

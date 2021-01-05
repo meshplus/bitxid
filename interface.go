@@ -48,9 +48,9 @@ type MethodManager interface {
 
 // DIDManager .
 type DIDManager interface {
-	Register(doc *DIDDoc) (string, []byte, error)
+	Register(docOption DocOption) (string, []byte, error)
 	Resolve(did DID) (*DIDItem, *DIDDoc, bool, error)
-	Update(doc *DIDDoc) (string, []byte, error)
+	Update(docOption DocOption) (string, []byte, error)
 	Delete(did DID) error
 	HasDID(did DID) bool
 }
