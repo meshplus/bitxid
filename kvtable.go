@@ -11,8 +11,6 @@ type KVTable struct {
 	store storage.Storage
 }
 
-// var tablelogger = log.NewWithModule("registry.Table")
-
 var _ RegistryTable = (*KVTable)(nil)
 
 // NewKVTable .

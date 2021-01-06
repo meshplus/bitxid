@@ -58,49 +58,89 @@ func (di *DIDItem) GetID() DID {
 
 var _ DIDManager = (*DIDRegistry)(nil)
 
-// DIDRegistry for DID Identifier.
+// DIDRegistry for DID Identifier,
 // Every appchain should use this DID Registry module.
 type DIDRegistry struct {
-	config *DIDConfig
-	table  RegistryTable
-	docdb  DocDB
-	logger logrus.FieldLogger
-	admins []DID // admins of the registry
-	method DID   // method of the registry
+	mode       RegistryMode
+	method     DID   // method of the registry
+	admins     []DID // admins of the registry
+	table      RegistryTable
+	docdb      DocDB
+	genesisDID DID
+	genesisDoc DocOption
+	logger     logrus.FieldLogger
+	// config *DIDConfig
 }
 
 // NewDIDRegistry news a DIDRegistry
-func NewDIDRegistry(ts storage.Storage, ds storage.Storage, l logrus.FieldLogger) (*DIDRegistry, error) {
-	rt, err := NewKVTable(ts)
-	if err != nil {
-		return nil, fmt.Errorf("DID new table: %w", err)
+func NewDIDRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func(*DIDRegistry)) (*DIDRegistry, error) {
+	rt, _ := NewKVTable(ts)
+	db, _ := NewKVDocDB(nil)
+	doc := genesisDIDDoc()
+	dr := &DIDRegistry{
+		mode:       ExternalDocDB,
+		table:      rt,
+		docdb:      db,
+		logger:     l,
+		admins:     []DID{doc.GetID()},
+		genesisDID: doc.GetID(),
+		genesisDoc: DocOption{
+			ID:      doc.GetID(),
+			Addr:    ".",
+			Hash:    []byte{0},
+			Content: doc,
+		},
 	}
-	db, err := NewKVDocDB(ds)
-	if err != nil {
-		return nil, fmt.Errorf("DID new docdb: %w", err)
+
+	for _, option := range options {
+		option(dr)
 	}
-	conf, err := DefaultBitXIDConfig()
-	return &DIDRegistry{
-		table:  rt,
-		docdb:  db,
-		logger: l,
-		config: &conf.DIDConfig,
-		admins: []DID{""},
-	}, nil
+
+	return dr, nil
+}
+
+// WithDIDDocStorage .
+func WithDIDDocStorage(ds storage.Storage) func(*DIDRegistry) {
+	return func(dr *DIDRegistry) {
+		db, _ := NewKVDocDB(ds)
+		dr.docdb = db
+		dr.mode = InternalDocDB
+	}
+}
+
+// WithDIDAdmin .
+func WithDIDAdmin(a DID) func(*DIDRegistry) {
+	return func(dr *DIDRegistry) {
+		dr.admins = []DID{a}
+	}
+}
+
+// WithGenesisDID .
+func WithGenesisDID(d DID) func(*DIDRegistry) {
+	return func(dr *DIDRegistry) {
+		dr.genesisDID = d
+	}
+}
+
+// WithGenesisDIDDoc .
+func WithGenesisDIDDoc(docOption DocOption) func(*DIDRegistry) {
+	return func(dr *DIDRegistry) {
+		dr.genesisDoc = docOption
+	}
 }
 
 // SetupGenesis set up genesis to boot the whole did registry
 func (r *DIDRegistry) SetupGenesis() error {
-	if r.config.Admin != r.config.AdminDoc.ID {
-		return fmt.Errorf("DID genesis: admin DID not matched with doc")
+	if r.genesisDID != r.genesisDoc.Content.GetID() {
+		return fmt.Errorf("genesis: admin DID not matched with doc")
 	}
 	// register genesis did
-	_, _, err := r.Register(r.config.AdminDoc)
+	_, _, err := r.Register(r.genesisDoc)
 	if err != nil {
 		return fmt.Errorf("genesis: %w", err)
 	}
-	r.admins = append(r.admins, DID(r.config.Admin))
-	r.method = DID(DID(r.config.AdminDoc.ID).GetAddress())
+
+	r.method = DID(DID(r.genesisDoc.Content.GetID()).GetAddress())
 
 	return nil
 }
@@ -136,77 +176,107 @@ func (r *DIDRegistry) GetMethod() DID {
 
 // Register ties did name to a did doc
 // ATN: only did who owns did-name should call this
-func (r *DIDRegistry) Register(doc *DIDDoc) (string, []byte, error) {
-	did := DID(doc.ID)
-	exist := r.HasDID(did)
-	if exist == true {
-		return "", nil, fmt.Errorf("DID %s already existed", did)
-	}
-
-	docAddr, err := r.docdb.Create(doc)
-	if err != nil {
-		return "", nil, fmt.Errorf("register DID on docdb: %w", err)
-	}
-	docBytes, err := doc.Marshal()
-	if err != nil {
-		return "", nil, fmt.Errorf("register DID doc marshal: %w", err)
-	}
-	docHash := sha256.Sum256(docBytes)
-	// update DIDRegistry table:
-	err = r.table.CreateItem(
-		&DIDItem{BasicItem{
-			ID:      did,
-			Status:  Normal,
-			DocAddr: docAddr,
-			DocHash: docHash[:],
-		},
-		})
-	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("register DID on table: %w", err)
-	}
-
-	return docAddr, docHash[:], nil
+func (r *DIDRegistry) Register(docOption DocOption) (string, []byte, error) {
+	return r.updateByStatus(docOption, Initial, Normal)
 }
 
 // Update .
 // ATN: only caller who owns did should call this
-func (r *DIDRegistry) Update(doc *DIDDoc) (string, []byte, error) {
-	did := DID(doc.ID)
-	// check exist
-	exist := r.HasDID(did)
-	if exist == false {
-		return "", nil, fmt.Errorf("DID %s not existed", did)
-	}
-	status := r.getDIDStatus(did)
-	if status != Normal {
-		return "", nil, fmt.Errorf("can not update DID under current status: %d", status)
-	}
-	docBytes, err := doc.Marshal()
+func (r *DIDRegistry) Update(docOption DocOption) (string, []byte, error) {
+	return r.updateByStatus(docOption, Normal, Normal)
+}
+
+func (r *DIDRegistry) updateByStatus(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, error) {
+	docAddr, docHash, did, err := r.updateDocdbOrNot(docOption, expectedStatus, status)
 	if err != nil {
-		r.logger.Error("update DID doc marshal:", err)
 		return "", nil, err
 	}
-	docAddr, err := r.docdb.Update(doc)
-	if err != nil {
-		return "", nil, fmt.Errorf("update DID on docdb: %w", err)
-	}
-	docHash := sha256.Sum256(docBytes)
-	item, err := r.table.GetItem(did, DIDTableType)
-	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("update DID table get: %w", err)
-	}
-	itemD := item.(*DIDItem)
-	itemD.DocAddr = docAddr
-	itemD.DocHash = docHash[:]
-	err = r.table.UpdateItem(itemD)
-	if err != nil {
-		return docAddr, docHash[:], fmt.Errorf("update DID on table: %w", err)
+
+	if expectedStatus == Initial { // register
+		err := r.table.CreateItem(
+			&DIDItem{BasicItem{
+				ID:      did,
+				Status:  Normal,
+				DocAddr: docAddr,
+				DocHash: docHash,
+			},
+			})
+		if err != nil {
+			return docAddr, docHash, fmt.Errorf("register DID on table: %w", err)
+		}
+	} else { // update
+		item, err := r.table.GetItem(did, DIDTableType)
+		if err != nil {
+			return docAddr, docHash, fmt.Errorf("DID table get: %w", err)
+		}
+		itemD := item.(*DIDItem)
+		itemD.DocAddr = docAddr
+		itemD.DocHash = docHash
+		itemD.Status = status
+		err = r.table.UpdateItem(itemD)
+		if err != nil {
+			return docAddr, docHash, fmt.Errorf("update DID on table: %w", err)
+		}
 	}
 
-	return docAddr, docHash[:], nil
+	return docAddr, docHash, nil
+}
+
+func (r *DIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, DID, error) {
+	var docAddr string
+	var docHash []byte
+	var did DID
+	if r.mode == InternalDocDB {
+		doc := docOption.Content.(*DIDDoc)
+		did = doc.GetID()
+
+		// check exist
+		exist := r.HasDID(did)
+		if expectedStatus == Initial && exist == true {
+			return "", nil, "", fmt.Errorf("DID %s already existed", did)
+		} else if expectedStatus == Normal && exist == false {
+			return "", nil, "", fmt.Errorf("DID %s not existed", did)
+		}
+
+		status := r.getDIDStatus(did)
+		if status != expectedStatus {
+			return "", nil, "", fmt.Errorf("DID %s is under status: %s, expectd status: %s", did, status, expectedStatus)
+		}
+
+		docBytes, err := doc.Marshal()
+		if err != nil {
+			r.logger.Error("DID doc marshal:", err)
+			return "", nil, "", err
+		}
+
+		if expectedStatus == Initial { // register
+			docAddr, err = r.docdb.Create(doc)
+			if err != nil {
+				return "", nil, "", fmt.Errorf("register DID on docdb: %w", err)
+			}
+		} else { // update
+			docAddr, err = r.docdb.Update(doc)
+			if err != nil {
+				return "", nil, "", fmt.Errorf("update DID on docdb: %w", err)
+			}
+		}
+
+		docHash32 := sha256.Sum256(docBytes)
+		docHash = docHash32[:]
+	} else {
+		did = docOption.ID
+		docAddr = docOption.Addr
+		docHash = docOption.Hash
+		status := r.getDIDStatus(did)
+		if status != expectedStatus {
+			return "", nil, "", fmt.Errorf("Method %s is under status: %s, expectd status: %s", did, status, expectedStatus)
+		}
+	}
+	return docAddr, docHash, did, nil
 }
 
 // Resolve looks up local-chain to resolve did.
+// @*DIDDoc returns nil if mode is ExternalDocDB
 func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, bool, error) {
 	exist := r.HasDID(did)
 	if exist == false {
@@ -218,12 +288,17 @@ func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, bool, error) {
 		return nil, nil, false, fmt.Errorf("resolve DID table get: %w", err)
 	}
 	itemD := item.(*DIDItem)
-	doc, err := r.docdb.Get(did, DIDDocType)
-	if err != nil {
-		return itemD, nil, true, fmt.Errorf("resolve DID docdb get: %w", err)
+
+	if r.mode == InternalDocDB {
+		doc, err := r.docdb.Get(did, DIDDocType)
+		if err != nil {
+			return itemD, nil, true, fmt.Errorf("resolve DID docdb get: %w", err)
+		}
+		docD := doc.(*DIDDoc)
+		return itemD, docD, true, nil
 	}
-	docD := doc.(*DIDDoc)
-	return itemD, docD, true, nil
+
+	return itemD, nil, true, nil
 }
 
 // Freeze .
@@ -252,8 +327,10 @@ func (r *DIDRegistry) Delete(did DID) error {
 	if err != nil {
 		return fmt.Errorf("delete DID aduit status: %w", err)
 	}
-	r.docdb.Delete(did)
 	r.table.DeleteItem(did)
+	if r.mode == InternalDocDB {
+		r.docdb.Delete(did)
+	}
 	return nil
 }
 
@@ -264,10 +341,13 @@ func (r *DIDRegistry) HasDID(did DID) bool {
 }
 
 func (r *DIDRegistry) getDIDStatus(did DID) StatusType {
+	if !r.table.HasItem(did) {
+		return Initial
+	}
 	item, err := r.table.GetItem(did, DIDTableType)
 	if err != nil {
-		r.logger.Warn("DID status get item:", err)
-		return Initial
+		r.logger.Error("DID status get item:", err)
+		return BadStatus
 	}
 	itemD := item.(*DIDItem)
 	return itemD.Status

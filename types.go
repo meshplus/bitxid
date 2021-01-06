@@ -5,33 +5,40 @@ import (
 	"strings"
 )
 
+// RegistryMode .
+type RegistryMode int
+
+// type of RegistryMode:
+// @ExternalDocDB: Doc store won't be mastered by Registry
+// @InternalDocDB: Doc store will be mastered by Registry
+const (
+	ExternalDocDB RegistryMode = iota
+	InternalDocDB
+)
+
 // DID represents decentrilzed identifier and method names
 // example identifier: did:bitxhub:appchain001
 // example method name:
 type DID string
 
 // StatusType .
-type StatusType int
+type StatusType string
 
 // the rule of status code:
-// end with 1 (001, 101, 301, etc.) means on audit
-// end with 5 (005, 105, 205, 305, etc.) means audit failed
-// end with 0 (010, 110, 200, 310, etc.) means good
-// 101/105/110 301/305/310 not used currently
+// @BadStatus: something went wrong during get status
+// @Normal: AuditSuccess or Unfrozen
 const (
-	Error           StatusType = -001
-	Initial         StatusType = 000
-	ApplyAudit      StatusType = 001
-	ApplyFailed     StatusType = 005
-	ApplySuccess    StatusType = 010
-	RegisterAudit   StatusType = 101
-	RegisterFailed  StatusType = 105
-	RegisterSuccess StatusType = 110
-	Normal          StatusType = 200
-	Frozen          StatusType = 205
-	UpdateAudit     StatusType = 301
-	UpdateFailed    StatusType = 305
-	UpdateSuccess   StatusType = 310
+	BadStatus      StatusType = "BadStatus"
+	Initial        StatusType = "Initial"
+	ApplyAudit     StatusType = "ApplyAudit"
+	ApplyFailed    StatusType = "ApplyFailed"
+	ApplySuccess   StatusType = "ApplySuccess"
+	RegisterAudit  StatusType = "RegisterAudit"
+	RegisterFailed StatusType = "RegisterFailed"
+	UpdateAudit    StatusType = "UpdateAudit"
+	UpdateFailed   StatusType = "UpdateFailed"
+	Frozen         StatusType = "Frozen"
+	Normal         StatusType = "Normal"
 )
 
 // DocType .
@@ -66,6 +73,15 @@ const (
 	ECDSAP521
 	Ed25519
 )
+
+// DocOption .
+// Content should be nil if Registry.mode == ExternalDocDB
+type DocOption struct {
+	ID      DID
+	Addr    string
+	Hash    []byte
+	Content Doc
+}
 
 // BasicDoc is the fundamental part of doc structure
 type BasicDoc struct {

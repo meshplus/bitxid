@@ -10,7 +10,7 @@ type Doc interface {
 // TableItem .
 type TableItem interface {
 	Marshal() ([]byte, error)
-	Unmarshal(docBytes []byte) error
+	Unmarshal(itemBytes []byte) error
 	GetID() DID
 }
 
@@ -39,18 +39,18 @@ type MethodManager interface {
 	Apply(caller DID, method DID) error
 	AuditApply(method DID, result bool) error
 	Audit(method DID, status StatusType) error
-	Register(doc *MethodDoc) (string, []byte, error)
+	Register(docOption DocOption) (string, []byte, error)
 	Resolve(method DID) (*MethodItem, *MethodDoc, bool, error)
-	Update(doc *MethodDoc) (string, []byte, error)
+	Update(docOption DocOption) (string, []byte, error)
 	Delete(method DID) error
 	HasMethod(method DID) bool
 }
 
 // DIDManager .
 type DIDManager interface {
-	Register(doc *DIDDoc) (string, []byte, error)
+	Register(docOption DocOption) (string, []byte, error)
 	Resolve(did DID) (*DIDItem, *DIDDoc, bool, error)
-	Update(doc *DIDDoc) (string, []byte, error)
+	Update(docOption DocOption) (string, []byte, error)
 	Delete(did DID) error
 	HasDID(did DID) bool
 }

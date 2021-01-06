@@ -35,7 +35,7 @@ func TestTABLECURD(t *testing.T) {
 		BasicItem{ID: key,
 			DocAddr: "./abc",
 			DocHash: []byte("cde"),
-			Status:  1},
+			Status:  Initial},
 		"a:b:c:1",
 	}
 	s, err := leveldb.New(dir)
@@ -61,7 +61,7 @@ func TestTABLECURD(t *testing.T) {
 			ID:      DID("a:b:c:1"),
 			DocAddr: "./abc",
 			DocHash: []byte("fgh"),
-			Status:  1},
+			Status:  Normal},
 		"a:b:c:1",
 	}
 	err = rt.UpdateItem(&item3)
