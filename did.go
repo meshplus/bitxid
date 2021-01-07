@@ -145,6 +145,11 @@ func (r *DIDRegistry) SetupGenesis() error {
 	return nil
 }
 
+// GetSelfID .
+func (r *DIDRegistry) GetSelfID() DID {
+	return DID(r.genesisDID.GetMethod())
+}
+
 // GetAdmins .
 func (r *DIDRegistry) GetAdmins() []DID {
 	return r.admins
