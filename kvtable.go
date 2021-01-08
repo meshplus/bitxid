@@ -8,7 +8,7 @@ import (
 
 // KVTable .
 type KVTable struct {
-	store storage.Storage
+	Store storage.Storage `json:"store"`
 }
 
 var _ RegistryTable = (*KVTable)(nil)
@@ -16,7 +16,7 @@ var _ RegistryTable = (*KVTable)(nil)
 // NewKVTable .
 func NewKVTable(S storage.Storage) (*KVTable, error) {
 	return &KVTable{
-		store: S,
+		Store: S,
 	}, nil
 }
 
@@ -26,7 +26,7 @@ func tbKey(id DID) []byte {
 
 // HasItem whether table has the item(by key)
 func (r *KVTable) HasItem(did DID) bool {
-	exists := r.store.Has(tbKey(did))
+	exists := r.Store.Has(tbKey(did))
 	return exists
 }
 
@@ -36,7 +36,7 @@ func (r *KVTable) setItem(did DID, item TableItem) error {
 	if err != nil {
 		return fmt.Errorf("kvtable marshal: %w", err)
 	}
-	r.store.Put(tbKey(did), bitem)
+	r.Store.Put(tbKey(did), bitem)
 	return nil
 }
 
@@ -73,7 +73,7 @@ func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	itemBytes := r.store.Get(tbKey(did))
+	itemBytes := r.Store.Get(tbKey(did))
 	switch typ {
 	case DIDTableType:
 		di := &DIDItem{}
@@ -96,12 +96,12 @@ func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
 
 // DeleteItem without any checks
 func (r *KVTable) DeleteItem(did DID) {
-	r.store.Delete(tbKey(did))
+	r.Store.Delete(tbKey(did))
 }
 
 // Close .
 func (r *KVTable) Close() error {
-	err := r.store.Close()
+	err := r.Store.Close()
 	if err != nil {
 		return fmt.Errorf("kvtable store: %w", err)
 	}

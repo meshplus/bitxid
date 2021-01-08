@@ -61,13 +61,13 @@ var _ MethodManager = (*MethodRegistry)(nil)
 
 // MethodRegistry .
 type MethodRegistry struct {
-	mode          RegistryMode
-	isRoot        bool
-	admins        []DID
-	table         RegistryTable
-	docdb         DocDB
-	genesisMetohd DID
-	genesisDoc    DocOption
+	Mode          RegistryMode  `json:"mode"`
+	IsRoot        bool          `json:"is_root"`
+	Admins        []DID         `json:"admins"`
+	Table         RegistryTable `json:"table"`
+	Docdb         DocDB         `json:"docdb"`
+	GenesisMetohd DID           `json:"genesis_method"`
+	GenesisDoc    DocOption     `json:"genesis_doc"`
 	logger        logrus.FieldLogger
 }
 
@@ -77,14 +77,14 @@ func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func
 	db, _ := NewKVDocDB(nil)
 	doc := genesisMetohdDoc()
 	mr := &MethodRegistry{ // default config
-		mode:          ExternalDocDB,
-		table:         rt,
-		docdb:         db,
+		Mode:          ExternalDocDB,
+		Table:         rt,
+		Docdb:         db,
 		logger:        l,
-		admins:        []DID{genesisDIDDoc().GetID()},
-		isRoot:        true,
-		genesisMetohd: doc.GetID(),
-		genesisDoc: DocOption{
+		Admins:        []DID{genesisDIDDoc().GetID()},
+		IsRoot:        true,
+		GenesisMetohd: doc.GetID(),
+		GenesisDoc: DocOption{
 			ID:      doc.GetID(),
 			Addr:    ".",
 			Hash:    []byte{0},
@@ -103,53 +103,53 @@ func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func
 func WithMethodDocStorage(ds storage.Storage) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
 		db, _ := NewKVDocDB(ds)
-		mr.docdb = db
-		mr.mode = InternalDocDB
+		mr.Docdb = db
+		mr.Mode = InternalDocDB
 	}
 }
 
 // WithMethodAdmin .
 func WithMethodAdmin(a DID) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
-		mr.admins = []DID{a}
+		mr.Admins = []DID{a}
 	}
 }
 
 // WithGenesisMetohd .
 func WithGenesisMetohd(m DID) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
-		mr.genesisMetohd = m
+		mr.GenesisMetohd = m
 	}
 }
 
 // WithGenesisMethodDoc .
 func WithGenesisMethodDoc(docOption DocOption) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
-		mr.genesisDoc = docOption
+		mr.GenesisDoc = docOption
 	}
 }
 
 // SetupGenesis set up genesis to boot the whole methed system
 func (r *MethodRegistry) SetupGenesis() error { // docOption DocOption
-	if !r.isRoot {
+	if !r.IsRoot {
 		return fmt.Errorf("genesis registry not root")
 	}
-	if r.genesisMetohd != r.genesisDoc.Content.(*MethodDoc).ID {
+	if r.GenesisMetohd != r.GenesisDoc.Content.(*MethodDoc).ID {
 		return fmt.Errorf("genesis Method not matched with doc")
 	}
 
 	// register method
-	err := r.Apply(r.admins[0], r.genesisMetohd)
+	err := r.Apply(r.Admins[0], r.GenesisMetohd)
 	if err != nil {
 		return fmt.Errorf("genesis apply err: %w", err)
 	}
 
-	err = r.AuditApply(r.genesisMetohd, true)
+	err = r.AuditApply(r.GenesisMetohd, true)
 	if err != nil {
 		return fmt.Errorf("genesis audit err: %w", err)
 	}
 
-	_, _, err = r.Register(r.genesisDoc)
+	_, _, err = r.Register(r.GenesisDoc)
 	if err != nil {
 		return fmt.Errorf("genesis register err: %w", err)
 	}
@@ -159,12 +159,12 @@ func (r *MethodRegistry) SetupGenesis() error { // docOption DocOption
 
 // GetSelfID .
 func (r *MethodRegistry) GetSelfID() DID {
-	return r.genesisMetohd
+	return r.GenesisMetohd
 }
 
 // GetAdmins .
 func (r *MethodRegistry) GetAdmins() []DID {
-	return r.admins
+	return r.Admins
 }
 
 // AddAdmin .
@@ -172,13 +172,13 @@ func (r *MethodRegistry) AddAdmin(caller DID) error {
 	if r.HasAdmin(caller) {
 		return fmt.Errorf("caller %s is already an admin", caller)
 	}
-	r.admins = append(r.admins, caller)
+	r.Admins = append(r.Admins, caller)
 	return nil
 }
 
 // HasAdmin .
 func (r *MethodRegistry) HasAdmin(caller DID) bool {
-	for _, v := range r.admins {
+	for _, v := range r.Admins {
 		if v == caller {
 			return true
 		}
@@ -198,7 +198,7 @@ func (r *MethodRegistry) Apply(caller DID, method DID) error {
 		return fmt.Errorf("can not apply %s under status: %s", method, status)
 	}
 	// creates item in table
-	err := r.table.CreateItem(
+	err := r.Table.CreateItem(
 		&MethodItem{
 			BasicItem{
 				ID:     DID(method),
@@ -232,7 +232,7 @@ func (r *MethodRegistry) AuditApply(method DID, result bool) error {
 
 // Synchronize synchronizes table data between different registrys
 func (r *MethodRegistry) Synchronize(item *MethodItem) error {
-	return r.table.CreateItem(item)
+	return r.Table.CreateItem(item)
 }
 
 // Register ties method name to a method doc
@@ -255,7 +255,7 @@ func (r *MethodRegistry) updateByStatus(docOption DocOption, expectedStatus Stat
 		return "", nil, err
 	}
 
-	item, err := r.table.GetItem(method, MethodTableType)
+	item, err := r.Table.GetItem(method, MethodTableType)
 	if err != nil {
 		return docAddr, docHash, fmt.Errorf("table get item: %w ", err)
 	}
@@ -263,7 +263,7 @@ func (r *MethodRegistry) updateByStatus(docOption DocOption, expectedStatus Stat
 	itemM.DocAddr = docAddr
 	itemM.DocHash = docHash
 	itemM.Status = status
-	err = r.table.UpdateItem(itemM)
+	err = r.Table.UpdateItem(itemM)
 	if err != nil {
 		return docAddr, docHash, fmt.Errorf("table update item: %w ", err)
 	}
@@ -275,7 +275,7 @@ func (r *MethodRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus St
 	var docAddr string
 	var docHash []byte
 	var method DID
-	if r.mode == InternalDocDB {
+	if r.Mode == InternalDocDB {
 		// check exist
 		doc := docOption.Content.(*MethodDoc)
 		method = doc.GetID()
@@ -290,9 +290,9 @@ func (r *MethodRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus St
 		}
 
 		if expectedStatus == ApplySuccess { // register
-			docAddr, err = r.docdb.Create(doc)
+			docAddr, err = r.Docdb.Create(doc)
 		} else { // update
-			docAddr, err = r.docdb.Update(doc)
+			docAddr, err = r.Docdb.Update(doc)
 		}
 
 		if err != nil {
@@ -351,10 +351,10 @@ func (r *MethodRegistry) Delete(method DID) error {
 		return fmt.Errorf("Method delete: %w", err)
 	}
 
-	r.table.DeleteItem(method)
+	r.Table.DeleteItem(method)
 
-	if r.mode == InternalDocDB {
-		r.docdb.Delete(method)
+	if r.Mode == InternalDocDB {
+		r.Docdb.Delete(method)
 	}
 
 	return nil
@@ -367,14 +367,14 @@ func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, err
 	if exist == false {
 		return nil, nil, false, nil
 	}
-	item, err := r.table.GetItem(method, MethodTableType)
+	item, err := r.Table.GetItem(method, MethodTableType)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("Method resolve table get: %w", err)
 	}
 	itemM := item.(*MethodItem)
 
-	if r.mode == InternalDocDB {
-		doc, err := r.docdb.Get(method, MethodDocType)
+	if r.Mode == InternalDocDB {
+		doc, err := r.Docdb.Get(method, MethodDocType)
 		if err != nil {
 			return itemM, nil, true, fmt.Errorf("Method resolve docdb get: %w", err)
 		}
@@ -386,15 +386,15 @@ func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, err
 
 // HasMethod .
 func (r *MethodRegistry) HasMethod(method DID) bool {
-	exist := r.table.HasItem(method)
+	exist := r.Table.HasItem(method)
 	return exist
 }
 
 func (r *MethodRegistry) getMethodStatus(method DID) StatusType {
-	if !r.table.HasItem(method) {
+	if !r.Table.HasItem(method) {
 		return Initial
 	}
-	item, err := r.table.GetItem(method, MethodTableType)
+	item, err := r.Table.GetItem(method, MethodTableType)
 	if err != nil {
 		r.logger.Error("method status get item:", err)
 		return BadStatus
@@ -405,13 +405,13 @@ func (r *MethodRegistry) getMethodStatus(method DID) StatusType {
 
 // auditStatus .
 func (r *MethodRegistry) auditStatus(method DID, status StatusType) error {
-	item, err := r.table.GetItem(method, MethodTableType)
+	item, err := r.Table.GetItem(method, MethodTableType)
 	if err != nil {
 		return fmt.Errorf("aduitstatus table get: %w", err)
 	}
 	itemM := item.(*MethodItem)
 	itemM.Status = status
-	err = r.table.UpdateItem(itemM)
+	err = r.Table.UpdateItem(itemM)
 	if err != nil {
 		return fmt.Errorf("aduitstatus table update: %w", err)
 	}

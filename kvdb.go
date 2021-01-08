@@ -8,8 +8,8 @@ import (
 
 // KVDocDB .
 type KVDocDB struct {
-	basicAddr string
-	store     storage.Storage
+	BasicAddr string          `json:"basic_addr"`
+	Store     storage.Storage `json:"store"`
 }
 
 var _ DocDB = (*KVDocDB)(nil)
@@ -17,8 +17,8 @@ var _ DocDB = (*KVDocDB)(nil)
 // NewKVDocDB .
 func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
 	return &KVDocDB{
-		store:     S,
-		basicAddr: ".",
+		Store:     S,
+		BasicAddr: ".",
 	}, nil
 }
 
@@ -28,7 +28,7 @@ func docKey(id DID) []byte {
 
 // Has whether db has the item(by key)
 func (d *KVDocDB) Has(did DID) bool {
-	return d.store.Has(docKey(did))
+	return d.Store.Has(docKey(did))
 }
 
 // Create .
@@ -45,8 +45,8 @@ func (d *KVDocDB) Create(doc Doc) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	d.store.Put(docKey(did), valueBytes)
-	return d.basicAddr + "/" + string(did), nil
+	d.Store.Put(docKey(did), valueBytes)
+	return d.BasicAddr + "/" + string(did), nil
 }
 
 // Update .
@@ -63,8 +63,8 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	d.store.Put(docKey(did), valueBytes)
-	return d.basicAddr + "/" + string(did), nil
+	d.Store.Put(docKey(did), valueBytes)
+	return d.BasicAddr + "/" + string(did), nil
 }
 
 // Get .
@@ -73,7 +73,7 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
 	}
-	valueBytes := d.store.Get(docKey(did))
+	valueBytes := d.Store.Get(docKey(did))
 	switch typ {
 	case DIDDocType:
 		dt := &DIDDoc{}
@@ -96,12 +96,12 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 
 // Delete .
 func (d *KVDocDB) Delete(did DID) {
-	d.store.Delete(docKey(did))
+	d.Store.Delete(docKey(did))
 }
 
 // Close .
 func (d *KVDocDB) Close() error {
-	err := d.store.Close()
+	err := d.Store.Close()
 	if err != nil {
 		return fmt.Errorf("kvdb store: %w", err)
 	}

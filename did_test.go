@@ -119,7 +119,7 @@ func testSetupDIDSucceed(t *testing.T, r *DIDRegistry) {
 }
 
 func testHasDIDSucceed(t *testing.T, r *DIDRegistry) {
-	ret1 := r.HasDID(DID(r.genesisDID))
+	ret1 := r.HasDID(DID(r.GenesisDID))
 	assert.Equal(t, true, ret1)
 }
 
@@ -231,9 +231,9 @@ func testDIDDeleteSucceed(t *testing.T, r *DIDRegistry) {
 }
 
 func testDIDCloseSucceedInternal(t *testing.T, r *DIDRegistry, path ...string) {
-	err := r.table.Close()
+	err := r.Table.Close()
 	assert.Nil(t, err)
-	err = r.docdb.Close()
+	err = r.Docdb.Close()
 	assert.Nil(t, err)
 
 	for _, p := range path {
@@ -243,7 +243,7 @@ func testDIDCloseSucceedInternal(t *testing.T, r *DIDRegistry, path ...string) {
 }
 
 func testDIDCloseSucceedExternal(t *testing.T, r *DIDRegistry, path ...string) {
-	err := r.table.Close()
+	err := r.Table.Close()
 	assert.Nil(t, err)
 
 	for _, p := range path {

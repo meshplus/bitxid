@@ -133,7 +133,7 @@ func testMethodSetupGenesSucceed(t *testing.T, mr *MethodRegistry) {
 }
 
 func testHasMethodSucceed(t *testing.T, mr *MethodRegistry) {
-	ret1 := mr.HasMethod(DID(mr.genesisMetohd))
+	ret1 := mr.HasMethod(DID(mr.GenesisMetohd))
 	assert.Equal(t, true, ret1)
 }
 
@@ -290,9 +290,9 @@ func testMethodDeleteSucceed(t *testing.T, mr *MethodRegistry) {
 }
 
 func testCloseSucceedInternal(t *testing.T, mr *MethodRegistry, path ...string) {
-	err := mr.table.Close()
+	err := mr.Table.Close()
 	assert.Nil(t, err)
-	err = mr.docdb.Close()
+	err = mr.Docdb.Close()
 	assert.Nil(t, err)
 
 	for _, p := range path {
@@ -302,7 +302,7 @@ func testCloseSucceedInternal(t *testing.T, mr *MethodRegistry, path ...string) 
 }
 
 func testCloseSucceedExternal(t *testing.T, mr *MethodRegistry, path ...string) {
-	err := mr.table.Close()
+	err := mr.Table.Close()
 	assert.Nil(t, err)
 
 	for _, p := range path {
