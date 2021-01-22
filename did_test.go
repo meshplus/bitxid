@@ -55,6 +55,8 @@ func TestDIDMode_Internal(t *testing.T) {
 
 	testSetupDIDSucceed(t, r)
 	testHasDIDSucceed(t, r)
+	testDIDAddAdminsSucceed(t, r)
+	testDIDRemoveAdminsSucceed(t, r)
 
 	testDIDRegisterSucceedInternal(t, r)
 	testDIDUpdateSucceedInternal(t, r)
@@ -70,6 +72,8 @@ func TestDIDMode_External(t *testing.T) {
 	r, drtPath := newDIDModeExternal(t)
 	testSetupDIDSucceed(t, r)
 	testHasDIDSucceed(t, r)
+	testDIDAddAdminsSucceed(t, r)
+	testDIDRemoveAdminsSucceed(t, r)
 
 	testDIDRegisterSucceedExternal(t, r)
 	testDIDUpdateSucceedExternal(t, r)
@@ -121,6 +125,20 @@ func testSetupDIDSucceed(t *testing.T, r *DIDRegistry) {
 func testHasDIDSucceed(t *testing.T, r *DIDRegistry) {
 	ret1 := r.HasDID(DID(r.GenesisDID))
 	assert.Equal(t, true, ret1)
+}
+
+func testDIDAddAdminsSucceed(t *testing.T, r *DIDRegistry) {
+	err := r.AddAdmin(admin)
+	assert.Nil(t, err)
+	ret := r.HasAdmin(admin)
+	assert.Equal(t, true, ret)
+}
+
+func testDIDRemoveAdminsSucceed(t *testing.T, r *DIDRegistry) {
+	err := r.RemoveAdmin(admin)
+	assert.Nil(t, err)
+	ret := r.HasAdmin(admin)
+	assert.Equal(t, false, ret)
 }
 
 func testDIDRegisterSucceedInternal(t *testing.T, r *DIDRegistry) {

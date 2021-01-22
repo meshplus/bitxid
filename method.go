@@ -176,6 +176,17 @@ func (r *MethodRegistry) AddAdmin(caller DID) error {
 	return nil
 }
 
+// RemoveAdmin .
+func (r *MethodRegistry) RemoveAdmin(caller DID) error {
+	for i, admin := range r.Admins {
+		if admin == caller {
+			r.Admins = append(r.Admins[:i], r.Admins[i+1:]...)
+			break
+		}
+	}
+	return nil
+}
+
 // HasAdmin .
 func (r *MethodRegistry) HasAdmin(caller DID) bool {
 	for _, v := range r.Admins {

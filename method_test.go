@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var superAdmin = DID("did:bitxhub:relayroot:superadmin")
+var admin = DID("did:bitxhub:relayroot:admin")
+
 var rootMethod = DID("did:bitxhub:relayroot:.")
 var method DID = DID("did:bitxhub:appchain001:.")
 var mcaller DID = DID("did:bitxhub:relayroot:0x12345678")
@@ -64,7 +67,7 @@ func newMethodModeInternal(t *testing.T) (*MethodRegistry, string, string) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(DID("")), WithMethodDocStorage(s2))
+	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(superAdmin), WithMethodDocStorage(s2))
 	assert.Nil(t, err)
 	return mr, mrtPath, mdbPath
 }
@@ -78,7 +81,7 @@ func newMethodModeExternal(t *testing.T) (*MethodRegistry, string) {
 	l := loggerGet(loggerMethod)
 	s1, err := leveldb.New(mrtPath)
 	assert.Nil(t, err)
-	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(DID("")))
+	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(superAdmin))
 	assert.Nil(t, err)
 	return mr, mrtPath
 }
@@ -88,6 +91,9 @@ func TestMethodMode_Internal(t *testing.T) {
 
 	testMethodSetupGenesSucceed(t, mr)
 	testHasMethodSucceed(t, mr)
+	testMethodAddAdminsSucceed(t, mr)
+	testMethodRemoveAdminsSucceed(t, mr)
+
 	testMethodApplySucceed(t, mr)
 	testMethodAuditApplyFailed(t, mr)
 	testMethodAuditApplySucceed(t, mr)
@@ -109,6 +115,9 @@ func TestMethodMode_External(t *testing.T) {
 
 	testMethodSetupGenesSucceed(t, mr)
 	testHasMethodSucceed(t, mr)
+	testMethodAddAdminsSucceed(t, mr)
+	testMethodRemoveAdminsSucceed(t, mr)
+
 	testMethodApplySucceed(t, mr)
 	testMethodAuditApplyFailed(t, mr)
 	testMethodAuditApplySucceed(t, mr)
@@ -135,6 +144,20 @@ func testMethodSetupGenesSucceed(t *testing.T, mr *MethodRegistry) {
 func testHasMethodSucceed(t *testing.T, mr *MethodRegistry) {
 	ret1 := mr.HasMethod(DID(mr.GenesisMetohd))
 	assert.Equal(t, true, ret1)
+}
+
+func testMethodAddAdminsSucceed(t *testing.T, mr *MethodRegistry) {
+	err := mr.AddAdmin(admin)
+	assert.Nil(t, err)
+	ret := mr.HasAdmin(admin)
+	assert.Equal(t, true, ret)
+}
+
+func testMethodRemoveAdminsSucceed(t *testing.T, mr *MethodRegistry) {
+	err := mr.RemoveAdmin(admin)
+	assert.Nil(t, err)
+	ret := mr.HasAdmin(admin)
+	assert.Equal(t, false, ret)
 }
 
 func testMethodApplySucceed(t *testing.T, mr *MethodRegistry) {
