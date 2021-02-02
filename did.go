@@ -169,10 +169,10 @@ func (r *DIDRegistry) RemoveAdmin(caller DID) error {
 	for i, admin := range r.Admins {
 		if admin == caller {
 			r.Admins = append(r.Admins[:i], r.Admins[i+1:]...)
-			break
+			return nil
 		}
 	}
-	return nil
+	return fmt.Errorf("caller %s is not an admin", caller)
 }
 
 // HasAdmin .

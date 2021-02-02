@@ -1,0 +1,16 @@
+{
+	"id":   "did:bitxhub:relayroot:.",
+	"type": "method",
+ 	"created": "2020-09-24T00:00:00Z",
+    "updated": "2020-09-24T17:41:00Z",
+    "publicKey": [{
+        "id": "KEY#1",
+        "type": "Secp256k1",
+        "PublicKeyPem": "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71"
+    }],
+    "controller": "did:bitxhub:relayroot:0x00000001",
+    "authentication": 
+    [{
+        "publickey": ["KEY#1"]
+    }]
+}
