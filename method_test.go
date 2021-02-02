@@ -310,6 +310,14 @@ func testMethodDeleteSucceed(t *testing.T, mr *MethodRegistry) {
 	assert.Nil(t, err)
 	err = mr.Delete(rootMethod)
 	assert.Nil(t, err)
+
+	item, _, _, err := mr.Resolve(method)
+	assert.Nil(t, err)
+	assert.Nil(t, item)
+
+	item2, _, _, err := mr.Resolve(rootMethod)
+	assert.Nil(t, err)
+	assert.Nil(t, item2)
 }
 
 func testCloseSucceedInternal(t *testing.T, mr *MethodRegistry, path ...string) {
