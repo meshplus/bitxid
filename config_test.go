@@ -19,7 +19,7 @@ type loggerWrapper struct {
 	loggers map[string]*logrus.Entry
 }
 
-func TestUnmarshalConfig(t *testing.T) {
+func testUnmarshalConfig(t *testing.T) {
 	config, err := UnmarshalConfig("./config")
 	assert.Nil(t, err)
 	dConfig, err := DefaultBitXIDConfig()
