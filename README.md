@@ -25,7 +25,7 @@ BitXID is already used by several great projects, among which [BitXHub](https://
 
 ## Usage
 
-Usage guide can be found in [here](TODO).
+Usage guide can be found in [here](./docs/usage-chn.md).
 
 ## Contact
 
