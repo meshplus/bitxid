@@ -52,11 +52,13 @@ type ChainDIDManager interface {
 	Apply(caller DID, method DID) error
 	AuditApply(method DID, result bool) error
 	Audit(method DID, status StatusType) error
-	Register(docOption DocOption) (string, []byte, error)
-	Resolve(method DID) (*ChainItem, *ChainDoc, bool, error)
-	Update(docOption DocOption) (string, []byte, error)
+	Register(chainDID DID, addr string, hash []byte) (string, []byte, error)
+	RegisterWithDoc(doc Doc) (string, []byte, error)
+	Update(chainDID DID, addr string, hash []byte) (string, []byte, error)
+	UpdateWithDoc(doc Doc) (string, []byte, error)
 	Freeze(method DID) error
 	UnFreeze(method DID) error
+	Resolve(method DID) (*ChainItem, *ChainDoc, bool, error)
 	Delete(method DID) error
 }
 

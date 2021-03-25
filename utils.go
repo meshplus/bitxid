@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-// Struct2Bytes .
-func Struct2Bytes(s interface{}) ([]byte, error) {
+// Marshal .
+func Marshal(s interface{}) ([]byte, error) {
 	buf := bytes.Buffer{}
 	err := gob.NewEncoder(&buf).Encode(s)
 	if err != nil {
@@ -16,8 +16,8 @@ func Struct2Bytes(s interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Bytes2Struct .
-func Bytes2Struct(b []byte, s interface{}) error {
+// Unmarshal .
+func Unmarshal(b []byte, s interface{}) error {
 	buf := bytes.NewBuffer(b)
 	err := gob.NewDecoder(buf).Decode(s)
 	if err != nil {
@@ -29,7 +29,7 @@ func Bytes2Struct(b []byte, s interface{}) error {
 // UnmarshalDIDDoc converts byte doc to struct doc
 func UnmarshalDIDDoc(docBytes []byte) (DIDDoc, error) {
 	docStruct := DIDDoc{}
-	err := Bytes2Struct(docBytes, &docStruct)
+	err := Unmarshal(docBytes, &docStruct)
 	if err != nil {
 		return DIDDoc{}, err
 	}
@@ -38,7 +38,7 @@ func UnmarshalDIDDoc(docBytes []byte) (DIDDoc, error) {
 
 // MarshalDIDDoc converts struct doc to byte doc
 func MarshalDIDDoc(docStruct DIDDoc) ([]byte, error) {
-	docBytes, err := Struct2Bytes(docStruct)
+	docBytes, err := Marshal(docStruct)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func MarshalDIDDoc(docStruct DIDDoc) ([]byte, error) {
 // UnmarshalChainDoc converts byte doc to struct doc
 func UnmarshalChainDoc(docBytes []byte) (ChainDoc, error) {
 	docStruct := ChainDoc{}
-	err := Bytes2Struct(docBytes, &docStruct)
+	err := Unmarshal(docBytes, &docStruct)
 	if err != nil {
 		return ChainDoc{}, err
 	}
@@ -57,7 +57,7 @@ func UnmarshalChainDoc(docBytes []byte) (ChainDoc, error) {
 
 // MarshalChainDoc converts struct doc to byte doc
 func MarshalChainDoc(docStruct ChainDoc) ([]byte, error) {
-	docBytes, err := Struct2Bytes(docStruct)
+	docBytes, err := Marshal(docStruct)
 	if err != nil {
 		return nil, err
 	}

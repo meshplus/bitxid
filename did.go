@@ -19,12 +19,12 @@ type DIDDoc struct {
 
 // Marshal .
 func (dd *DIDDoc) Marshal() ([]byte, error) {
-	return Struct2Bytes(dd)
+	return Marshal(dd)
 }
 
 // Unmarshal .
 func (dd *DIDDoc) Unmarshal(docBytes []byte) error {
-	err := Bytes2Struct(docBytes, &dd)
+	err := Unmarshal(docBytes, &dd)
 	return err
 }
 
@@ -50,12 +50,12 @@ type DIDItem struct {
 
 // Marshal .
 func (di *DIDItem) Marshal() ([]byte, error) {
-	return Struct2Bytes(di)
+	return Marshal(di)
 }
 
 // Unmarshal .
 func (di *DIDItem) Unmarshal(docBytes []byte) error {
-	return Bytes2Struct(docBytes, &di)
+	return Unmarshal(docBytes, &di)
 }
 
 // GetID .
@@ -313,7 +313,7 @@ func (r *DIDRegistry) Resolve(did DID) (*DIDItem, *DIDDoc, bool, error) {
 	itemD := item.(*DIDItem)
 
 	if r.Mode == InternalDocDB {
-		doc, err := r.Docdb.Get(did, DIDDocType)
+		doc, err := r.Docdb.Get(did, AccountDocType)
 		if err != nil {
 			return itemD, nil, true, fmt.Errorf("resolve DID docdb get: %w", err)
 		}

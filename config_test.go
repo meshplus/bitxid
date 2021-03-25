@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	loggerDID    = "did"
-	loggerMethod = "method"
+	loggerAccountDID = "account-did"
+	loggerChainDID   = "chain-did"
 )
 
 var w *loggerWrapper
@@ -30,10 +30,10 @@ func testUnmarshalConfig(t *testing.T) {
 func loggerInit() {
 	// config *repo.Config
 	m := make(map[string]*logrus.Entry)
-	m[loggerDID] = log.NewWithModule(loggerDID)
-	m[loggerDID].Logger.SetLevel(log.ParseLevel("info"))
-	m[loggerMethod] = log.NewWithModule(loggerMethod)
-	m[loggerMethod].Logger.SetLevel(log.ParseLevel("info"))
+	m[loggerAccountDID] = log.NewWithModule(loggerAccountDID)
+	m[loggerAccountDID].Logger.SetLevel(log.ParseLevel("info"))
+	m[loggerChainDID] = log.NewWithModule(loggerChainDID)
+	m[loggerChainDID].Logger.SetLevel(log.ParseLevel("info"))
 
 	w = &loggerWrapper{loggers: m}
 }

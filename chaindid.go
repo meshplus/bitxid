@@ -19,12 +19,12 @@ type ChainDoc struct {
 
 // Marshal .
 func (cd *ChainDoc) Marshal() ([]byte, error) {
-	return Struct2Bytes(cd)
+	return Marshal(cd)
 }
 
 // Unmarshal .
 func (cd *ChainDoc) Unmarshal(docBytes []byte) error {
-	return Bytes2Struct(docBytes, &cd)
+	return Unmarshal(docBytes, &cd)
 }
 
 // GetID .
@@ -51,12 +51,12 @@ type ChainItem struct {
 
 // Marshal .
 func (mi *ChainItem) Marshal() ([]byte, error) {
-	return Struct2Bytes(mi)
+	return Marshal(mi)
 }
 
 // Unmarshal .
 func (mi *ChainItem) Unmarshal(docBytes []byte) error {
-	return Bytes2Struct(docBytes, &mi)
+	return Unmarshal(docBytes, &mi)
 }
 
 // GetID .
@@ -116,7 +116,7 @@ func WithChainDocStorage(ds storage.Storage) func(*ChainDIDRegistry) {
 }
 
 // WithMethodAdmin .
-func WithMethodAdmin(a DID) func(*ChainDIDRegistry) {
+func WithAdmin(a DID) func(*ChainDIDRegistry) {
 	return func(cr *ChainDIDRegistry) {
 		cr.Admins = []DID{a}
 	}
@@ -126,7 +126,10 @@ func WithMethodAdmin(a DID) func(*ChainDIDRegistry) {
 func WithGenesisChainDoc(docOption DocOption) func(*ChainDIDRegistry) {
 	return func(cr *ChainDIDRegistry) {
 		cr.GenesisChainDoc = docOption
-		cr.GenesisChainDID = DID(docOption.ID.GetChainDID())
+		cr.GenesisChainDID = docOption.ID
+		if docOption.ID == "" {
+			cr.GenesisChainDID = docOption.Content.(*ChainDoc).ID
+		}
 	}
 }
 
@@ -138,9 +141,9 @@ func (r *ChainDIDRegistry) SetupGenesis() error {
 	if len(r.Admins) == 0 {
 		return fmt.Errorf("No admins")
 	}
-	if r.GenesisChainDID != r.GenesisChainDoc.Content.(*ChainDoc).ID {
-		return fmt.Errorf("genesis ChainDID not matched with ChainDoc")
-	}
+	// if r.GenesisChainDID != r.GenesisChainDoc.Content.(*ChainDoc).ID {
+	// 	return fmt.Errorf("genesis ChainDID not matched with ChainDoc")
+	// }
 
 	// register method:
 	err := r.Apply(r.Admins[0], r.GenesisChainDID)
@@ -151,9 +154,16 @@ func (r *ChainDIDRegistry) SetupGenesis() error {
 	if err != nil {
 		return fmt.Errorf("genesis audit err: %w", err)
 	}
-	_, _, err = r.Register(r.GenesisChainDoc)
-	if err != nil {
-		return fmt.Errorf("genesis register err: %w", err)
+	if r.Mode == ExternalDocDB {
+		_, _, err = r.Register(r.GenesisChainDoc.ID, r.GenesisChainDoc.Addr, r.GenesisChainDoc.Hash)
+		if err != nil {
+			return fmt.Errorf("genesis register err: %w", err)
+		}
+	} else {
+		_, _, err = r.RegisterWithDoc(r.GenesisChainDoc.Content)
+		if err != nil {
+			return fmt.Errorf("genesis register err: %w", err)
+		}
 	}
 
 	return nil
@@ -248,27 +258,38 @@ func (r *ChainDIDRegistry) Synchronize(item *ChainItem) error {
 	return r.Table.CreateItem(item)
 }
 
-// Register ties method name to a method doc
+// Register ties chain did to a chain doc
 // ATN: only did who owns method-name should call this
-func (r *ChainDIDRegistry) Register(docOption DocOption) (string, []byte, error) { // doc *ChainDoc
-	return r.updateByStatus(docOption, ApplySuccess, Normal)
+func (r *ChainDIDRegistry) Register(chainDID DID, addr string, hash []byte) (string, []byte, error) {
+	return r.updateByStatus(DocOption{ID: chainDID, Addr: addr, Hash: hash}, ApplySuccess, Normal)
 }
 
-// Update .
+// Register with doc
+func (r *ChainDIDRegistry) RegisterWithDoc(doc Doc) (string, []byte, error) {
+	return r.updateByStatus(DocOption{Content: doc}, ApplySuccess, Normal)
+}
+
+// Update with doc
+func (r *ChainDIDRegistry) Update(chainDID DID, addr string, hash []byte) (string, []byte, error) {
+	return r.updateByStatus(DocOption{ID: chainDID, Addr: addr, Hash: hash}, Normal, Normal)
+}
+
+// Update updates data about a chain did
 // ATN: only did who owns method-name should call this.
-func (r *ChainDIDRegistry) Update(docOption DocOption) (string, []byte, error) {
-	return r.updateByStatus(docOption, Normal, Normal)
+func (r *ChainDIDRegistry) UpdateWithDoc(doc Doc) (string, []byte, error) {
+	return r.updateByStatus(DocOption{Content: doc}, Normal, Normal)
 }
 
 // update with expected status
 func (r *ChainDIDRegistry) updateByStatus(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, error) {
-
-	docAddr, docHash, method, err := r.updateDocdbOrNot(docOption, expectedStatus, status)
+	// update doc concerned data
+	docAddr, docHash, chainDID, err := r.updateDocdbOrNot(docOption, expectedStatus, status)
 	if err != nil {
 		return "", nil, err
 	}
 
-	item, err := r.Table.GetItem(method, MethodTableType)
+	// update table concerned data
+	item, err := r.Table.GetItem(chainDID, MethodTableType)
 	if err != nil {
 		return docAddr, docHash, fmt.Errorf("table get item: %w ", err)
 	}
@@ -284,6 +305,7 @@ func (r *ChainDIDRegistry) updateByStatus(docOption DocOption, expectedStatus St
 	return docAddr, docHash, nil
 }
 
+// updateDocdbOrNot will updata DocDB(when under InternalDocDB mode) or not(when under ExternalDocDB mode)
 func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, DID, error) {
 	var docAddr string
 	var docHash []byte
@@ -294,7 +316,7 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 		chainDID = doc.GetID()
 		status := r.GetChainDIDStatus(chainDID)
 		if status != expectedStatus {
-			return "", nil, "", fmt.Errorf("Method %s is under status: %s, expected status: %s", chainDID, status, expectedStatus)
+			return "", nil, "", fmt.Errorf("ChainDID %s is under status: %s, expected status: %s", chainDID, status, expectedStatus)
 		}
 
 		docBytes, err := doc.Marshal()
@@ -307,11 +329,9 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 		} else { // update
 			docAddr, err = r.Docdb.Update(doc)
 		}
-
 		if err != nil {
 			return "", nil, "", fmt.Errorf("update docdb: %w ", err)
 		}
-
 		docHash32 := sha256.Sum256(docBytes)
 		docHash = docHash32[:]
 	} else {
@@ -320,7 +340,7 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 		docHash = docOption.Hash
 		status := r.GetChainDIDStatus(chainDID)
 		if status != expectedStatus {
-			return "", nil, "", fmt.Errorf("Method %s is under status: %s, expected status: %s", chainDID, status, expectedStatus)
+			return "", nil, "", fmt.Errorf("ChainDID %s is under status: %s, expected status: %s", chainDID, status, expectedStatus)
 		}
 	}
 	return docAddr, docHash, chainDID, nil

@@ -69,7 +69,7 @@ func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 func getAdminDoc() *DIDDoc {
 	doc := &DIDDoc{}
 	doc.ID = "did:bitxhub:appchain001:0x00000001"
-	doc.Type = "user"
+	doc.Type = int(ChainDocType)
 	pk := PubKey{
 		ID:           "KEY#1",
 		Type:         "Ed25519",
@@ -87,7 +87,7 @@ func genesisDIDDoc() *DIDDoc {
 	return &DIDDoc{
 		BasicDoc: BasicDoc{
 			ID:   "did:bitxhub:appchain001:0x00000001",
-			Type: "user",
+			Type: int(AccountDocType),
 			PublicKey: []PubKey{
 				{
 					ID:           "KEY#1",
@@ -106,7 +106,7 @@ func genesisChainDoc() *ChainDoc {
 	return &ChainDoc{
 		BasicDoc: BasicDoc{
 			ID:   "did:bitxhub:relayroot:.",
-			Type: "method",
+			Type: int(ChainDocType),
 			PublicKey: []PubKey{
 				{
 					ID:           "KEY#1",

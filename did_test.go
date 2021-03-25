@@ -25,7 +25,7 @@ var diddocB DIDDoc = getDIDDoc(2)
 func getDIDDoc(ran int) DIDDoc {
 	docE := DIDDoc{}
 	docE.ID = did
-	docE.Type = "user"
+	docE.Type = int(AccountDocType)
 	pk1 := PubKey{
 		ID:           "KEY#1",
 		Type:         "Ed25519",
@@ -94,7 +94,7 @@ func newDIDModeInternal(t *testing.T) (*DIDRegistry, string, string) {
 	drtPath := dir1
 	ddbPath := dir2
 	loggerInit()
-	l := loggerGet(loggerDID)
+	l := loggerGet(loggerAccountDID)
 	s1, err := leveldb.New(drtPath)
 	assert.Nil(t, err)
 	s2, err := leveldb.New(ddbPath)
@@ -109,7 +109,7 @@ func newDIDModeExternal(t *testing.T) (*DIDRegistry, string) {
 	assert.Nil(t, err)
 	drtPath := dir1
 	loggerInit()
-	l := loggerGet(loggerDID)
+	l := loggerGet(loggerAccountDID)
 	s1, err := leveldb.New(drtPath)
 	assert.Nil(t, err)
 	r, err := NewDIDRegistry(s1, l)
@@ -142,7 +142,7 @@ func testDIDRemoveAdminsSucceed(t *testing.T, r *DIDRegistry) {
 }
 
 func testDIDRegisterSucceedInternal(t *testing.T, r *DIDRegistry) {
-	docABytes, err := Struct2Bytes(diddocA)
+	docABytes, err := Marshal(diddocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docABytes)
 	docAddrE := "./" + string(did)
@@ -155,7 +155,7 @@ func testDIDRegisterSucceedInternal(t *testing.T, r *DIDRegistry) {
 }
 
 func testDIDRegisterSucceedExternal(t *testing.T, r *DIDRegistry) {
-	docABytes, err := Struct2Bytes(diddocA)
+	docABytes, err := Marshal(diddocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docABytes)
 	docAddrE := "./addr/" + string(did)
@@ -164,7 +164,7 @@ func testDIDRegisterSucceedExternal(t *testing.T, r *DIDRegistry) {
 }
 
 func testDIDUpdateSucceedInternal(t *testing.T, r *DIDRegistry) {
-	docBBytes, err := Struct2Bytes(diddocB)
+	docBBytes, err := Marshal(diddocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)
 	docAddrE := "./" + string(did)
@@ -177,7 +177,7 @@ func testDIDUpdateSucceedInternal(t *testing.T, r *DIDRegistry) {
 }
 
 func testDIDUpdateSucceedExternal(t *testing.T, r *DIDRegistry) {
-	docBBytes, err := Struct2Bytes(diddocB)
+	docBBytes, err := Marshal(diddocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)
 	docAddrE := "/addr/" + string(did)
@@ -187,7 +187,7 @@ func testDIDUpdateSucceedExternal(t *testing.T, r *DIDRegistry) {
 
 func testDIDResolveSucceedInternal(t *testing.T, r *DIDRegistry) {
 	item, doc, _, err := r.Resolve(did)
-	docBBytes, err := Struct2Bytes(diddocB)
+	docBBytes, err := Marshal(diddocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
@@ -209,7 +209,7 @@ func testDIDResolveSucceedExternal(t *testing.T, r *DIDRegistry) {
 	item, doc, _, err := r.Resolve(did)
 	assert.Nil(t, err)
 	assert.Nil(t, doc)
-	docBBytes, err := Struct2Bytes(diddocB)
+	docBBytes, err := Marshal(diddocB)
 	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
 	itemE := DIDItem{

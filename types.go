@@ -47,7 +47,7 @@ type DocType int
 // type of doc
 const (
 	ChainDocType DocType = iota
-	DIDDocType
+	AccountDocType
 )
 
 // TableType .
@@ -86,7 +86,7 @@ type DocOption struct {
 // BasicDoc is the fundamental part of doc structure
 type BasicDoc struct {
 	ID             DID      `json:"id"`
-	Type           string   `json:"type"`
+	Type           int      `json:"type"`
 	Created        uint64   `json:"created"`
 	Updated        uint64   `json:"updated"`
 	Controller     DID      `json:"controller"`

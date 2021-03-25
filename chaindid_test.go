@@ -14,8 +14,8 @@ import (
 var superAdmin = DID("did:bitxhub:relayroot:superadmin")
 var admin = DID("did:bitxhub:relayroot:admin")
 
-var rootMethod = DID("did:bitxhub:relayroot:.")
-var method DID = DID("did:bitxhub:appchain001:.")
+var rootChainDID = DID("did:bitxhub:relayroot:.")
+var chainDID DID = DID("did:bitxhub:appchain001:.")
 var mcaller DID = DID("did:bitxhub:relayroot:0x12345678")
 
 var mdoc ChainDoc = getChainDoc(0)
@@ -24,8 +24,8 @@ var mdocB ChainDoc = getChainDoc(2)
 
 func getChainDoc(ran int) ChainDoc {
 	docE := ChainDoc{}
-	docE.ID = method
-	docE.Type = "method"
+	docE.ID = chainDID
+	docE.Type = int(ChainDocType)
 	pk1 := PubKey{
 		ID:           "KEY#1",
 		Type:         "Ed25519",
@@ -38,7 +38,7 @@ func getChainDoc(ran int) ChainDoc {
 	}
 
 	if ran == 0 {
-		docE.ID = rootMethod
+		docE.ID = rootChainDID
 	} else if ran == 1 {
 		docE.PublicKey = []PubKey{pk1}
 	} else {
@@ -53,233 +53,227 @@ func getChainDoc(ran int) ChainDoc {
 	return docE
 }
 
-func newMethodModeInternal(t *testing.T) (*ChainDIDRegistry, string, string) {
-	dir1, err := ioutil.TempDir("testdata", "method.table")
+func newChainDIDModeInternal(t *testing.T) (*ChainDIDRegistry, string, string) {
+	dir1, err := ioutil.TempDir("testdata", "chainDID.table")
 	assert.Nil(t, err)
-	dir2, err := ioutil.TempDir("testdata", "method.docdb")
+	dir2, err := ioutil.TempDir("testdata", "chainDID.docdb")
 	assert.Nil(t, err)
 
 	mrtPath := dir1
 	mdbPath := dir2
 	loggerInit()
-	l := loggerGet(loggerMethod)
+	l := loggerGet(loggerChainDID)
 	s1, err := leveldb.New(mrtPath)
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	mr, err := NewChainDIDRegistry(s1, l, WithMethodAdmin(superAdmin), WithChainDocStorage(s2))
+	mr, err := NewChainDIDRegistry(s1, l, WithGenesisChainDoc(DocOption{Content: &mdoc}), WithAdmin(superAdmin), WithChainDocStorage(s2))
 	assert.Nil(t, err)
 	return mr, mrtPath, mdbPath
 }
 
-func newMethodModeExternal(t *testing.T) (*ChainDIDRegistry, string) {
-	dir1, err := ioutil.TempDir("testdata", "method.table")
+func newChainDIDModeExternal(t *testing.T) (*ChainDIDRegistry, string) {
+	dir1, err := ioutil.TempDir("testdata", "chainDID.table")
 	assert.Nil(t, err)
 	mrtPath := dir1
 
 	loggerInit()
-	l := loggerGet(loggerMethod)
+	l := loggerGet(loggerChainDID)
 	s1, err := leveldb.New(mrtPath)
 	assert.Nil(t, err)
-	mr, err := NewChainDIDRegistry(s1, l, WithMethodAdmin(superAdmin))
+	mr, err := NewChainDIDRegistry(s1, l, WithGenesisChainDoc(DocOption{ID: rootChainDID, Addr: "/addr/to/doc", Hash: []byte{1}}), WithAdmin(superAdmin))
 	assert.Nil(t, err)
 	return mr, mrtPath
 }
 
-func TestMethodMode_Internal(t *testing.T) {
-	mr, drtPath, ddbPath := newMethodModeInternal(t)
+func TestChainDIDMode_Internal(t *testing.T) {
+	mr, drtPath, ddbPath := newChainDIDModeInternal(t)
 
-	testMethodSetupGenesSucceed(t, mr)
-	testHasMethodSucceed(t, mr)
-	testMethodAddAdminsSucceed(t, mr)
-	testMethodRemoveAdminsSucceed(t, mr)
+	testChainDIDSetupGenesSucceed(t, mr)
+	testHasChainDIDSucceed(t, mr)
+	testChainDIDAddAdminsSucceed(t, mr)
+	testChainDIDRemoveAdminsSucceed(t, mr)
 
-	testMethodApplySucceed(t, mr)
-	testMethodAuditApplyFailed(t, mr)
-	testMethodAuditApplySucceed(t, mr)
+	testChainDIDApplySucceed(t, mr)
+	testChainDIDAuditApplyFailed(t, mr)
+	testChainDIDAuditApplySucceed(t, mr)
 
-	testMethodRegisterSucceedInternal(t, mr)
-	testMethodUpdateSucceedInternal(t, mr)
+	testChainDIDRegisterSucceedInternal(t, mr)
+	testChainDIDUpdateSucceedInternal(t, mr)
 
-	testMethodAuditUpdateSucceed(t, mr)
-	testMethodAuditStatusNormal(t, mr)
-	testMethodFreezeSucceed(t, mr)
-	testMethodUnFreezeSucceed(t, mr)
-	testMethodResolveSucceedInternal(t, mr)
-	testMethodDeleteSucceed(t, mr)
+	testChainDIDAuditUpdateSucceed(t, mr)
+	testChainDIDAuditStatusNormal(t, mr)
+	testChainDIDFreezeSucceed(t, mr)
+	testChainDIDUnFreezeSucceed(t, mr)
+	testChainDIDResolveSucceedInternal(t, mr)
+	testChainDIDDeleteSucceed(t, mr)
 	testCloseSucceedInternal(t, mr, drtPath, ddbPath)
 }
 
-func TestMethodMode_External(t *testing.T) {
-	mr, drtPath := newMethodModeExternal(t)
+func TestChainDIDMode_External(t *testing.T) {
+	mr, drtPath := newChainDIDModeExternal(t)
 
-	testMethodSetupGenesSucceed(t, mr)
-	testHasMethodSucceed(t, mr)
-	testMethodAddAdminsSucceed(t, mr)
-	testMethodRemoveAdminsSucceed(t, mr)
+	testChainDIDSetupGenesSucceed(t, mr)
+	testHasChainDIDSucceed(t, mr)
+	testChainDIDAddAdminsSucceed(t, mr)
+	testChainDIDRemoveAdminsSucceed(t, mr)
 
-	testMethodApplySucceed(t, mr)
-	testMethodAuditApplyFailed(t, mr)
-	testMethodAuditApplySucceed(t, mr)
+	testChainDIDApplySucceed(t, mr)
+	testChainDIDAuditApplyFailed(t, mr)
+	testChainDIDAuditApplySucceed(t, mr)
 
-	testMethodRegisterSucceedExternal(t, mr)
-	testMethodUpdateSucceedExternal(t, mr)
+	testChainDIDRegisterSucceedExternal(t, mr)
+	testChainDIDUpdateSucceedExternal(t, mr)
 
-	testMethodAuditUpdateSucceed(t, mr)
-	testMethodAuditStatusNormal(t, mr)
-	testMethodFreezeSucceed(t, mr)
-	testMethodUnFreezeSucceed(t, mr)
+	testChainDIDAuditUpdateSucceed(t, mr)
+	testChainDIDAuditStatusNormal(t, mr)
+	testChainDIDFreezeSucceed(t, mr)
+	testChainDIDUnFreezeSucceed(t, mr)
 
-	testMethodResolveSucceedExternal(t, mr)
-	testMethodDeleteSucceed(t, mr)
+	testChainDIDResolveSucceedExternal(t, mr)
+	testChainDIDDeleteSucceed(t, mr)
 
 	testCloseSucceedExternal(t, mr, drtPath)
 }
 
-func testMethodSetupGenesSucceed(t *testing.T, mr *ChainDIDRegistry) {
+func testChainDIDSetupGenesSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.SetupGenesis()
 	assert.Nil(t, err)
 }
 
-func testHasMethodSucceed(t *testing.T, mr *ChainDIDRegistry) {
+func testHasChainDIDSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	ret1 := mr.HasChainDID(DID(mr.GenesisChainDID))
 	assert.Equal(t, true, ret1)
 }
 
-func testMethodAddAdminsSucceed(t *testing.T, mr *ChainDIDRegistry) {
+func testChainDIDAddAdminsSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.AddAdmin(admin)
 	assert.Nil(t, err)
 	ret := mr.HasAdmin(admin)
 	assert.Equal(t, true, ret)
 }
 
-func testMethodRemoveAdminsSucceed(t *testing.T, mr *ChainDIDRegistry) {
+func testChainDIDRemoveAdminsSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.RemoveAdmin(admin)
 	assert.Nil(t, err)
 	ret := mr.HasAdmin(admin)
 	assert.Equal(t, false, ret)
 }
 
-func testMethodApplySucceed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.Apply(mcaller, method) // sig
+func testChainDIDApplySucceed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.Apply(mcaller, chainDID) // sig
 	assert.Nil(t, err)
 }
 
-func testMethodAuditApplyFailed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.AuditApply(method, false)
+func testChainDIDAuditApplyFailed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.AuditApply(chainDID, false)
 	assert.Nil(t, err)
 }
 
-func testMethodAuditApplySucceed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.AuditApply(method, true)
+func testChainDIDAuditApplySucceed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.AuditApply(chainDID, true)
 	assert.Nil(t, err)
 }
 
-func testMethodRegisterSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
-	docBytes, err := Struct2Bytes(mdocA)
+func testChainDIDRegisterSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
+	docBytes, err := Marshal(mdocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
 
 	strHashE := fmt.Sprintf("%x", docHashE)
-	docAddrE := "./" + string(method)
+	docAddrE := "./" + string(chainDID)
 
-	docAddr, docHash, err := mr.Register(DocOption{Content: &mdocA})
+	docAddr, docHash, err := mr.RegisterWithDoc(&mdocA)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 	assert.Equal(t, mcaller, item.Owner)
 }
 
-func testMethodRegisterSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
-	docBytes, err := Struct2Bytes(mdocA)
+func testChainDIDRegisterSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
+	docBytes, err := Marshal(mdocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
-	docAddrE := "./addr/" + string(method)
-	docAddr, docHash, err := mr.Register(DocOption{
-		ID:   method,
-		Addr: docAddrE,
-		Hash: docHashE[:]})
+	docAddrE := "./addr/" + string(chainDID)
+	docAddr, docHash, err := mr.Register(chainDID, docAddrE, docHashE[:])
 	assert.Nil(t, err)
 
 	strHashE := fmt.Sprintf("%x", docHashE)
 	strHash := fmt.Sprintf("%x", docHash)
 
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 	assert.Equal(t, mcaller, item.Owner)
 }
 
-func testMethodUpdateSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
-	docBytes, err := Struct2Bytes(mdocB)
+func testChainDIDUpdateSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
+	docBytes, err := Marshal(mdocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
 	strHashE := fmt.Sprintf("%x", docHashE)
-	docAddrE := "./" + string(method)
+	docAddrE := "./" + string(chainDID)
 
-	docAddr, docHash, err := mr.Update(DocOption{Content: &mdocB})
+	docAddr, docHash, err := mr.UpdateWithDoc(&mdocB)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	assert.Equal(t, strHashE, strHash)
 	assert.Equal(t, docAddrE, docAddr)
 }
 
-func testMethodUpdateSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
-	docBytes, err := Struct2Bytes(mdocB)
+func testChainDIDUpdateSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
+	docBytes, err := Marshal(mdocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
-	docAddrE := "/addr/" + string(method)
+	docAddrE := "/addr/" + string(chainDID)
 
-	_, _, err = mr.Update(DocOption{
-		ID:   method,
-		Addr: docAddrE,
-		Hash: docHashE[:]})
+	_, _, err = mr.Update(chainDID, docAddrE, docHashE[:])
 	assert.Nil(t, err)
 }
 
-func testMethodAuditUpdateSucceed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.Audit(method, RegisterFailed)
+func testChainDIDAuditUpdateSucceed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.Audit(chainDID, RegisterFailed)
 	assert.Nil(t, err)
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, RegisterFailed, item.Status)
 }
 
-func testMethodAuditStatusNormal(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.Audit(method, Normal)
+func testChainDIDAuditStatusNormal(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.Audit(chainDID, Normal)
 	assert.Nil(t, err)
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, Normal, item.Status)
 }
 
-func testMethodFreezeSucceed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.Freeze(method)
+func testChainDIDFreezeSucceed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.Freeze(chainDID)
 	assert.Nil(t, err)
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, Frozen, item.Status)
 }
 
-func testMethodUnFreezeSucceed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.UnFreeze(method)
+func testChainDIDUnFreezeSucceed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.UnFreeze(chainDID)
 	assert.Nil(t, err)
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, Normal, item.Status)
 }
 
-func testMethodResolveSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
-	docAddrE := "./" + string(method)
-	item, doc, _, err := mr.Resolve(method)
+func testChainDIDResolveSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
+	docAddrE := "./" + string(chainDID)
+	item, doc, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Equal(t, &mdocB, doc) // compare doc
 	itemE := ChainItem{
-		BasicItem{ID: DID(method),
+		BasicItem{ID: DID(chainDID),
 			DocAddr: docAddrE,
 			Status:  Normal},
 		mcaller,
@@ -290,13 +284,13 @@ func testMethodResolveSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
 	assert.Equal(t, itemE.Status, item.Status)
 }
 
-func testMethodResolveSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
-	docAddrE := "/addr/" + string(method)
-	item, doc, _, err := mr.Resolve(method)
+func testChainDIDResolveSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
+	docAddrE := "/addr/" + string(chainDID)
+	item, doc, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Nil(t, doc)
 	itemE := ChainItem{
-		BasicItem: BasicItem{ID: DID(method),
+		BasicItem: BasicItem{ID: DID(chainDID),
 			DocAddr: docAddrE,
 			Status:  Normal},
 	}
@@ -305,17 +299,17 @@ func testMethodResolveSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
 	assert.Equal(t, itemE.Status, item.Status)
 }
 
-func testMethodDeleteSucceed(t *testing.T, mr *ChainDIDRegistry) {
-	err := mr.Delete(method)
+func testChainDIDDeleteSucceed(t *testing.T, mr *ChainDIDRegistry) {
+	err := mr.Delete(chainDID)
 	assert.Nil(t, err)
-	err = mr.Delete(rootMethod)
+	err = mr.Delete(rootChainDID)
 	assert.Nil(t, err)
 
-	item, _, _, err := mr.Resolve(method)
+	item, _, _, err := mr.Resolve(chainDID)
 	assert.Nil(t, err)
 	assert.Nil(t, item)
 
-	item2, _, _, err := mr.Resolve(rootMethod)
+	item2, _, _, err := mr.Resolve(rootChainDID)
 	assert.Nil(t, err)
 	assert.Nil(t, item2)
 }
