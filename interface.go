@@ -5,6 +5,7 @@ type Doc interface {
 	Marshal() ([]byte, error)
 	Unmarshal(docBytes []byte) error
 	GetID() DID
+	IsValidFormat() bool
 }
 
 // TableItem represents the table item of a registry table
@@ -52,7 +53,7 @@ type MethodManager interface {
 	AuditApply(method DID, result bool) error
 	Audit(method DID, status StatusType) error
 	Register(docOption DocOption) (string, []byte, error)
-	Resolve(method DID) (*MethodItem, *MethodDoc, bool, error)
+	Resolve(method DID) (*MethodItem, *ChainDoc, bool, error)
 	Update(docOption DocOption) (string, []byte, error)
 	Freeze(method DID) error
 	UnFreeze(method DID) error

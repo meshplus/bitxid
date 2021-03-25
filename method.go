@@ -9,27 +9,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var _ Doc = (*MethodDoc)(nil)
+var _ Doc = (*ChainDoc)(nil)
 
-// MethodDoc .
-type MethodDoc struct {
+// ChainDoc .
+type ChainDoc struct {
 	BasicDoc
 	Extra []byte `json:"extra"` // for further usage
 }
 
 // Marshal .
-func (md *MethodDoc) Marshal() ([]byte, error) {
+func (md *ChainDoc) Marshal() ([]byte, error) {
 	return Struct2Bytes(md)
 }
 
 // Unmarshal .
-func (md *MethodDoc) Unmarshal(docBytes []byte) error {
+func (md *ChainDoc) Unmarshal(docBytes []byte) error {
 	return Bytes2Struct(docBytes, &md)
 }
 
 // GetID .
-func (md *MethodDoc) GetID() DID {
+func (md *ChainDoc) GetID() DID {
 	return md.ID
+}
+
+func (md *ChainDoc) IsValidFormat() bool {
+	if md.Created == 0 || !md.ID.IsChainDIDFormat() {
+		return false
+	}
+	return true
 }
 
 var _ TableItem = (*MethodItem)(nil)
@@ -66,7 +73,7 @@ type MethodRegistry struct {
 	Admins        []DID         `json:"admins"`
 	Table         RegistryTable `json:"table"`
 	Docdb         DocDB         `json:"docdb"`
-	GenesisMetohd DID           `json:"genesis_method"`
+	GenesisMethod DID           `json:"genesis_method"`
 	GenesisDoc    DocOption     `json:"genesis_doc"`
 	logger        logrus.FieldLogger
 }
@@ -75,23 +82,23 @@ type MethodRegistry struct {
 func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func(*MethodRegistry)) (*MethodRegistry, error) {
 	rt, _ := NewKVTable(ts)
 	db, _ := NewKVDocDB(nil)
-	doc := genesisMetohdDoc()
+	// doc := GenesisChainDoc()
 	mr := &MethodRegistry{ // default config
-		Mode:          ExternalDocDB,
-		Table:         rt,
-		Docdb:         db,
-		logger:        l,
-		Admins:        []DID{genesisDIDDoc().GetID()},
-		IsRoot:        true,
-		GenesisMetohd: doc.GetID(),
-		GenesisDoc: DocOption{
-			ID:      doc.GetID(),
-			Addr:    ".",
-			Hash:    []byte{0},
-			Content: doc,
-		},
+		Mode:   ExternalDocDB,
+		Table:  rt,
+		Docdb:  db,
+		logger: l,
+		Admins: []DID{genesisDIDDoc().GetID()},
+		// IsRoot: true,
+		// GenesisMethod: doc.GetID(),
+		// GenesisDoc: DocOption{
+		// 	ID:      doc.GetID(),
+		// 	Addr:    ".",
+		// 	Hash:    []byte{0},
+		// 	Content: doc,
+		// },
 	}
-
+	// TODO: Check field
 	for _, option := range options {
 		option(mr)
 	}
@@ -99,8 +106,8 @@ func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func
 	return mr, nil
 }
 
-// WithMethodDocStorage .
-func WithMethodDocStorage(ds storage.Storage) func(*MethodRegistry) {
+// WithChainDocStorage .
+func WithChainDocStorage(ds storage.Storage) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
 		db, _ := NewKVDocDB(ds)
 		mr.Docdb = db
@@ -115,40 +122,40 @@ func WithMethodAdmin(a DID) func(*MethodRegistry) {
 	}
 }
 
-// WithGenesisMetohd .
-func WithGenesisMetohd(m DID) func(*MethodRegistry) {
-	return func(mr *MethodRegistry) {
-		mr.GenesisMetohd = m
-	}
-}
+// // WithGenesisMethod .
+// func WithGenesisMethod(m DID) func(*MethodRegistry) {
+// 	return func(mr *MethodRegistry) {
+// 		mr.GenesisMethod = m
+// 	}
+// }
 
-// WithGenesisMethodDoc .
-func WithGenesisMethodDoc(docOption DocOption) func(*MethodRegistry) {
+// WithGenesisChainDoc .
+func WithGenesisChainDoc(docOption DocOption) func(*MethodRegistry) {
 	return func(mr *MethodRegistry) {
 		mr.GenesisDoc = docOption
+		mr.GenesisMethod = DID(docOption.ID.GetMethod())
 	}
 }
 
 // SetupGenesis set up genesis to boot the whole methed system
-func (r *MethodRegistry) SetupGenesis() error { // docOption DocOption
-	if !r.IsRoot {
-		return fmt.Errorf("genesis registry not root")
+func (r *MethodRegistry) SetupGenesis() error {
+	if r.GenesisMethod == "" {
+		return fmt.Errorf("genesis Method is null")
 	}
-	if r.GenesisMetohd != r.GenesisDoc.Content.(*MethodDoc).ID {
+
+	if r.GenesisMethod != r.GenesisDoc.Content.(*ChainDoc).ID {
 		return fmt.Errorf("genesis Method not matched with doc")
 	}
 
-	// register method
-	err := r.Apply(r.Admins[0], r.GenesisMetohd)
+	// register method:
+	err := r.Apply(r.Admins[0], r.GenesisMethod)
 	if err != nil {
 		return fmt.Errorf("genesis apply err: %w", err)
 	}
-
-	err = r.AuditApply(r.GenesisMetohd, true)
+	err = r.AuditApply(r.GenesisMethod, true)
 	if err != nil {
 		return fmt.Errorf("genesis audit err: %w", err)
 	}
-
 	_, _, err = r.Register(r.GenesisDoc)
 	if err != nil {
 		return fmt.Errorf("genesis register err: %w", err)
@@ -159,7 +166,7 @@ func (r *MethodRegistry) SetupGenesis() error { // docOption DocOption
 
 // GetSelfID .
 func (r *MethodRegistry) GetSelfID() DID {
-	return r.GenesisMetohd
+	return r.GenesisMethod
 }
 
 // GetAdmins .
@@ -248,7 +255,7 @@ func (r *MethodRegistry) Synchronize(item *MethodItem) error {
 
 // Register ties method name to a method doc
 // ATN: only did who owns method-name should call this
-func (r *MethodRegistry) Register(docOption DocOption) (string, []byte, error) { // doc *MethodDoc
+func (r *MethodRegistry) Register(docOption DocOption) (string, []byte, error) { // doc *ChainDoc
 	return r.updateByStatus(docOption, ApplySuccess, Normal)
 }
 
@@ -288,7 +295,7 @@ func (r *MethodRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus St
 	var method DID
 	if r.Mode == InternalDocDB {
 		// check exist
-		doc := docOption.Content.(*MethodDoc)
+		doc := docOption.Content.(*ChainDoc)
 		method = doc.GetID()
 		status := r.getMethodStatus(method)
 		if status != expectedStatus {
@@ -373,7 +380,7 @@ func (r *MethodRegistry) Delete(method DID) error {
 
 // Resolve looks up local-chain to resolve method.
 // @*DIDDoc returns nil if mode is ExternalDocDB
-func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, error) {
+func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *ChainDoc, bool, error) {
 	exist := r.HasMethod(method)
 	if exist == false {
 		return nil, nil, false, nil
@@ -385,11 +392,11 @@ func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, err
 	itemM := item.(*MethodItem)
 
 	if r.Mode == InternalDocDB {
-		doc, err := r.Docdb.Get(method, MethodDocType)
+		doc, err := r.Docdb.Get(method, ChainDocType)
 		if err != nil {
 			return itemM, nil, true, fmt.Errorf("Method resolve docdb get: %w", err)
 		}
-		docM := doc.(*MethodDoc)
+		docM := doc.(*ChainDoc)
 		return itemM, docM, true, nil
 	}
 	return itemM, nil, true, nil

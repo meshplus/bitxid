@@ -82,8 +82,8 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 			return nil, fmt.Errorf("kvdb unmarshal did doc: %w", err)
 		}
 		return dt, nil
-	case MethodDocType:
-		mt := &MethodDoc{}
+	case ChainDocType:
+		mt := &ChainDoc{}
 		err := mt.Unmarshal(valueBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvdb unmarshal method doc: %w", err)

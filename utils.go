@@ -45,18 +45,18 @@ func MarshalDIDDoc(docStruct DIDDoc) ([]byte, error) {
 	return docBytes, nil
 }
 
-// UnmarshalMethodDoc converts byte doc to struct doc
-func UnmarshalMethodDoc(docBytes []byte) (MethodDoc, error) {
-	docStruct := MethodDoc{}
+// UnmarshalChainDoc converts byte doc to struct doc
+func UnmarshalChainDoc(docBytes []byte) (ChainDoc, error) {
+	docStruct := ChainDoc{}
 	err := Bytes2Struct(docBytes, &docStruct)
 	if err != nil {
-		return MethodDoc{}, err
+		return ChainDoc{}, err
 	}
 	return docStruct, nil
 }
 
-// MarshalMethodDoc converts struct doc to byte doc
-func MarshalMethodDoc(docStruct MethodDoc) ([]byte, error) {
+// MarshalChainDoc converts struct doc to byte doc
+func MarshalChainDoc(docStruct ChainDoc) ([]byte, error) {
 	docBytes, err := Struct2Bytes(docStruct)
 	if err != nil {
 		return nil, err

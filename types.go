@@ -46,7 +46,7 @@ type DocType int
 
 // type of doc
 const (
-	MethodDocType DocType = iota
+	ChainDocType DocType = iota
 	DIDDocType
 )
 
@@ -112,12 +112,31 @@ type PubKey struct {
 // Auth .
 type Auth struct {
 	PublicKey []string `json:"publicKey"` // ID of PublicKey
+	Strategy  string   `json:"strategy"`  // strategy of publicKey combination
 }
 
 // IsValidFormat .
 func (did DID) IsValidFormat() bool {
 	s := strings.Split(string(did), ":")
 	if len(s) != 4 || s[0] != "did" || s[1] == "" || s[2] == "" || s[3] == "" {
+		return false
+	}
+	return true
+}
+
+// IsAccountDIDFormat .
+func (did DID) IsAccountDIDFormat() bool {
+	s := strings.Split(string(did), ":")
+	if len(s) != 4 || s[0] != "did" || s[1] == "" || s[2] == "" || s[3] == "." {
+		return false
+	}
+	return true
+}
+
+// IsChainDIDFormat .
+func (did DID) IsChainDIDFormat() bool {
+	s := strings.Split(string(did), ":")
+	if len(s) != 4 || s[0] != "did" || s[1] == "" || s[2] == "" || s[3] != "." {
 		return false
 	}
 	return true

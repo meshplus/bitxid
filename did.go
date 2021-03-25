@@ -33,6 +33,13 @@ func (dd *DIDDoc) GetID() DID {
 	return dd.ID
 }
 
+func (dd *DIDDoc) IsValidFormat() bool {
+	if dd.Created == 0 || !dd.ID.IsAccountDIDFormat() {
+		return false
+	}
+	return true
+}
+
 var _ TableItem = (*DIDItem)(nil)
 
 // DIDItem reperesentis a did item, element of registry table.

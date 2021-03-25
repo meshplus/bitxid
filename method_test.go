@@ -18,12 +18,12 @@ var rootMethod = DID("did:bitxhub:relayroot:.")
 var method DID = DID("did:bitxhub:appchain001:.")
 var mcaller DID = DID("did:bitxhub:relayroot:0x12345678")
 
-var mdoc MethodDoc = getMethodDoc(0)
-var mdocA MethodDoc = getMethodDoc(1)
-var mdocB MethodDoc = getMethodDoc(2)
+var mdoc ChainDoc = getChainDoc(0)
+var mdocA ChainDoc = getChainDoc(1)
+var mdocB ChainDoc = getChainDoc(2)
 
-func getMethodDoc(ran int) MethodDoc {
-	docE := MethodDoc{}
+func getChainDoc(ran int) ChainDoc {
+	docE := ChainDoc{}
 	docE.ID = method
 	docE.Type = "method"
 	pk1 := PubKey{
@@ -67,7 +67,7 @@ func newMethodModeInternal(t *testing.T) (*MethodRegistry, string, string) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(superAdmin), WithMethodDocStorage(s2))
+	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(superAdmin), WithChainDocStorage(s2))
 	assert.Nil(t, err)
 	return mr, mrtPath, mdbPath
 }
@@ -142,7 +142,7 @@ func testMethodSetupGenesSucceed(t *testing.T, mr *MethodRegistry) {
 }
 
 func testHasMethodSucceed(t *testing.T, mr *MethodRegistry) {
-	ret1 := mr.HasMethod(DID(mr.GenesisMetohd))
+	ret1 := mr.HasMethod(DID(mr.GenesisMethod))
 	assert.Equal(t, true, ret1)
 }
 

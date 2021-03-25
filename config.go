@@ -32,10 +32,10 @@ type DIDConfig struct {
 // MethodConfig .
 type MethodConfig struct {
 	Mode          RegistryMode
-	Admin         DID        `toml:"admin" json:"admin"`
-	IsRoot        bool       `toml:"is_root" json:"is_root"`
-	GenesisMetohd DID        `toml:"genesis_metohd" json:"genesis_metohd"`
-	GenesisDoc    *MethodDoc `toml:"genesis_doc" json:"genesis_doc"`
+	Admin         DID       `toml:"admin" json:"admin"`
+	IsRoot        bool      `toml:"is_root" json:"is_root"`
+	GenesisMetohd DID       `toml:"genesis_metohd" json:"genesis_metohd"`
+	GenesisDoc    *ChainDoc `toml:"genesis_doc" json:"genesis_doc"`
 }
 
 // DefaultConfig .
@@ -61,7 +61,7 @@ func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 			// Addr:          ".",
 			IsRoot:        true,
 			GenesisMetohd: "did:bitxhub:relayroot:.",
-			GenesisDoc:    genesisMetohdDoc(),
+			GenesisDoc:    genesisChainDoc(),
 		},
 	}, nil
 }
@@ -102,8 +102,8 @@ func genesisDIDDoc() *DIDDoc {
 	}
 }
 
-func genesisMetohdDoc() *MethodDoc {
-	return &MethodDoc{
+func genesisChainDoc() *ChainDoc {
+	return &ChainDoc{
 		BasicDoc: BasicDoc{
 			ID:   "did:bitxhub:relayroot:.",
 			Type: "method",
