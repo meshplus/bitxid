@@ -154,7 +154,7 @@ func (r *DIDRegistry) SetupGenesis() error {
 
 // GetSelfID .
 func (r *DIDRegistry) GetSelfID() DID {
-	return DID(r.GenesisDID.GetMethod())
+	return DID(r.GenesisDID.GetChainDID())
 }
 
 // GetAdmins .
@@ -192,8 +192,8 @@ func (r *DIDRegistry) HasAdmin(caller DID) bool {
 	return false
 }
 
-// GetMethod .
-func (r *DIDRegistry) GetMethod() DID {
+// GetChainDID .
+func (r *DIDRegistry) GetChainDID() DID {
 	return r.Method
 }
 

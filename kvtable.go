@@ -83,7 +83,7 @@ func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
 		}
 		return di, nil
 	case MethodTableType:
-		mi := &MethodItem{}
+		mi := &ChainItem{}
 		err := mi.Unmarshal(itemBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvtable unmarshal method item: %w", err)

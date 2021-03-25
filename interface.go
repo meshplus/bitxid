@@ -44,16 +44,16 @@ type BasicManager interface {
 	HasAdmin(caller DID) bool
 }
 
-// MethodManager represents chain did management registry
-type MethodManager interface {
+// ChainDIDManager represents chain did management registry
+type ChainDIDManager interface {
 	BasicManager
-	HasMethod(method DID) bool
+	HasChainDID(method DID) bool
 
 	Apply(caller DID, method DID) error
 	AuditApply(method DID, result bool) error
 	Audit(method DID, status StatusType) error
 	Register(docOption DocOption) (string, []byte, error)
-	Resolve(method DID) (*MethodItem, *ChainDoc, bool, error)
+	Resolve(method DID) (*ChainItem, *ChainDoc, bool, error)
 	Update(docOption DocOption) (string, []byte, error)
 	Freeze(method DID) error
 	UnFreeze(method DID) error
@@ -63,7 +63,7 @@ type MethodManager interface {
 // DIDManager represents account did management registry
 type DIDManager interface {
 	BasicManager
-	GetMethod() DID
+	GetChainDID() DID
 	HasDID(did DID) bool
 
 	Register(docOption DocOption) (string, []byte, error)

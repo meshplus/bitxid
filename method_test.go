@@ -53,7 +53,7 @@ func getChainDoc(ran int) ChainDoc {
 	return docE
 }
 
-func newMethodModeInternal(t *testing.T) (*MethodRegistry, string, string) {
+func newMethodModeInternal(t *testing.T) (*ChainDIDRegistry, string, string) {
 	dir1, err := ioutil.TempDir("testdata", "method.table")
 	assert.Nil(t, err)
 	dir2, err := ioutil.TempDir("testdata", "method.docdb")
@@ -67,12 +67,12 @@ func newMethodModeInternal(t *testing.T) (*MethodRegistry, string, string) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(superAdmin), WithChainDocStorage(s2))
+	mr, err := NewChainDIDRegistry(s1, l, WithMethodAdmin(superAdmin), WithChainDocStorage(s2))
 	assert.Nil(t, err)
 	return mr, mrtPath, mdbPath
 }
 
-func newMethodModeExternal(t *testing.T) (*MethodRegistry, string) {
+func newMethodModeExternal(t *testing.T) (*ChainDIDRegistry, string) {
 	dir1, err := ioutil.TempDir("testdata", "method.table")
 	assert.Nil(t, err)
 	mrtPath := dir1
@@ -81,7 +81,7 @@ func newMethodModeExternal(t *testing.T) (*MethodRegistry, string) {
 	l := loggerGet(loggerMethod)
 	s1, err := leveldb.New(mrtPath)
 	assert.Nil(t, err)
-	mr, err := NewMethodRegistry(s1, l, WithMethodAdmin(superAdmin))
+	mr, err := NewChainDIDRegistry(s1, l, WithMethodAdmin(superAdmin))
 	assert.Nil(t, err)
 	return mr, mrtPath
 }
@@ -136,46 +136,46 @@ func TestMethodMode_External(t *testing.T) {
 	testCloseSucceedExternal(t, mr, drtPath)
 }
 
-func testMethodSetupGenesSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodSetupGenesSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.SetupGenesis()
 	assert.Nil(t, err)
 }
 
-func testHasMethodSucceed(t *testing.T, mr *MethodRegistry) {
-	ret1 := mr.HasMethod(DID(mr.GenesisMethod))
+func testHasMethodSucceed(t *testing.T, mr *ChainDIDRegistry) {
+	ret1 := mr.HasChainDID(DID(mr.GenesisChainDID))
 	assert.Equal(t, true, ret1)
 }
 
-func testMethodAddAdminsSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodAddAdminsSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.AddAdmin(admin)
 	assert.Nil(t, err)
 	ret := mr.HasAdmin(admin)
 	assert.Equal(t, true, ret)
 }
 
-func testMethodRemoveAdminsSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodRemoveAdminsSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.RemoveAdmin(admin)
 	assert.Nil(t, err)
 	ret := mr.HasAdmin(admin)
 	assert.Equal(t, false, ret)
 }
 
-func testMethodApplySucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodApplySucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.Apply(mcaller, method) // sig
 	assert.Nil(t, err)
 }
 
-func testMethodAuditApplyFailed(t *testing.T, mr *MethodRegistry) {
+func testMethodAuditApplyFailed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.AuditApply(method, false)
 	assert.Nil(t, err)
 }
 
-func testMethodAuditApplySucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodAuditApplySucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.AuditApply(method, true)
 	assert.Nil(t, err)
 }
 
-func testMethodRegisterSucceedInternal(t *testing.T, mr *MethodRegistry) {
+func testMethodRegisterSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
 	docBytes, err := Struct2Bytes(mdocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
@@ -193,7 +193,7 @@ func testMethodRegisterSucceedInternal(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, mcaller, item.Owner)
 }
 
-func testMethodRegisterSucceedExternal(t *testing.T, mr *MethodRegistry) {
+func testMethodRegisterSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
 	docBytes, err := Struct2Bytes(mdocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
@@ -214,7 +214,7 @@ func testMethodRegisterSucceedExternal(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, mcaller, item.Owner)
 }
 
-func testMethodUpdateSucceedInternal(t *testing.T, mr *MethodRegistry) {
+func testMethodUpdateSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
 	docBytes, err := Struct2Bytes(mdocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
@@ -228,7 +228,7 @@ func testMethodUpdateSucceedInternal(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, docAddrE, docAddr)
 }
 
-func testMethodUpdateSucceedExternal(t *testing.T, mr *MethodRegistry) {
+func testMethodUpdateSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
 	docBytes, err := Struct2Bytes(mdocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBytes)
@@ -241,7 +241,7 @@ func testMethodUpdateSucceedExternal(t *testing.T, mr *MethodRegistry) {
 	assert.Nil(t, err)
 }
 
-func testMethodAuditUpdateSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodAuditUpdateSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.Audit(method, RegisterFailed)
 	assert.Nil(t, err)
 	item, _, _, err := mr.Resolve(method)
@@ -249,7 +249,7 @@ func testMethodAuditUpdateSucceed(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, RegisterFailed, item.Status)
 }
 
-func testMethodAuditStatusNormal(t *testing.T, mr *MethodRegistry) {
+func testMethodAuditStatusNormal(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.Audit(method, Normal)
 	assert.Nil(t, err)
 	item, _, _, err := mr.Resolve(method)
@@ -257,7 +257,7 @@ func testMethodAuditStatusNormal(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, Normal, item.Status)
 }
 
-func testMethodFreezeSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodFreezeSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.Freeze(method)
 	assert.Nil(t, err)
 	item, _, _, err := mr.Resolve(method)
@@ -265,7 +265,7 @@ func testMethodFreezeSucceed(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, Frozen, item.Status)
 }
 
-func testMethodUnFreezeSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodUnFreezeSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.UnFreeze(method)
 	assert.Nil(t, err)
 	item, _, _, err := mr.Resolve(method)
@@ -273,12 +273,12 @@ func testMethodUnFreezeSucceed(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, Normal, item.Status)
 }
 
-func testMethodResolveSucceedInternal(t *testing.T, mr *MethodRegistry) {
+func testMethodResolveSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
 	docAddrE := "./" + string(method)
 	item, doc, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Equal(t, &mdocB, doc) // compare doc
-	itemE := MethodItem{
+	itemE := ChainItem{
 		BasicItem{ID: DID(method),
 			DocAddr: docAddrE,
 			Status:  Normal},
@@ -290,12 +290,12 @@ func testMethodResolveSucceedInternal(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, itemE.Status, item.Status)
 }
 
-func testMethodResolveSucceedExternal(t *testing.T, mr *MethodRegistry) {
+func testMethodResolveSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
 	docAddrE := "/addr/" + string(method)
 	item, doc, _, err := mr.Resolve(method)
 	assert.Nil(t, err)
 	assert.Nil(t, doc)
-	itemE := MethodItem{
+	itemE := ChainItem{
 		BasicItem: BasicItem{ID: DID(method),
 			DocAddr: docAddrE,
 			Status:  Normal},
@@ -305,7 +305,7 @@ func testMethodResolveSucceedExternal(t *testing.T, mr *MethodRegistry) {
 	assert.Equal(t, itemE.Status, item.Status)
 }
 
-func testMethodDeleteSucceed(t *testing.T, mr *MethodRegistry) {
+func testMethodDeleteSucceed(t *testing.T, mr *ChainDIDRegistry) {
 	err := mr.Delete(method)
 	assert.Nil(t, err)
 	err = mr.Delete(rootMethod)
@@ -320,7 +320,7 @@ func testMethodDeleteSucceed(t *testing.T, mr *MethodRegistry) {
 	assert.Nil(t, item2)
 }
 
-func testCloseSucceedInternal(t *testing.T, mr *MethodRegistry, path ...string) {
+func testCloseSucceedInternal(t *testing.T, mr *ChainDIDRegistry, path ...string) {
 	err := mr.Table.Close()
 	assert.Nil(t, err)
 	err = mr.Docdb.Close()
@@ -332,7 +332,7 @@ func testCloseSucceedInternal(t *testing.T, mr *MethodRegistry, path ...string) 
 	}
 }
 
-func testCloseSucceedExternal(t *testing.T, mr *MethodRegistry, path ...string) {
+func testCloseSucceedExternal(t *testing.T, mr *ChainDIDRegistry, path ...string) {
 	err := mr.Table.Close()
 	assert.Nil(t, err)
 

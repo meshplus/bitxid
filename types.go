@@ -169,8 +169,8 @@ func (did DID) GetAddress() string {
 	return s[3]
 }
 
-// GetMethod .
-func (did DID) GetMethod() string {
+// GetChainDID .
+func (did DID) GetChainDID() string {
 	return "did:" + did.GetRootMethod() + ":" + did.GetSubMethod() + ":."
 }
 

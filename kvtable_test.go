@@ -31,7 +31,7 @@ func TestTABLECURD(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	key := DID("a:b:c:1")
-	item := MethodItem{
+	item := ChainItem{
 		BasicItem{ID: key,
 			DocAddr: "./abc",
 			DocHash: []byte("cde"),
@@ -54,9 +54,9 @@ func TestTABLECURD(t *testing.T) {
 	// test CreateItem:
 	item2, err := rt.GetItem(key, MethodTableType)
 	assert.Nil(t, err)
-	assert.Equal(t, item, *item2.(*MethodItem))
+	assert.Equal(t, item, *item2.(*ChainItem))
 	// test
-	item3 := MethodItem{
+	item3 := ChainItem{
 		BasicItem{
 			ID:      DID("a:b:c:1"),
 			DocAddr: "./abc",
@@ -68,7 +68,7 @@ func TestTABLECURD(t *testing.T) {
 	assert.Nil(t, err)
 	item4, err := rt.GetItem(key, MethodTableType)
 	assert.Nil(t, err)
-	assert.Equal(t, item3, *item4.(*MethodItem))
+	assert.Equal(t, item3, *item4.(*ChainItem))
 	// test DeleteItem:
 	rt.DeleteItem(key)
 	// assert.Nil(t, err)
