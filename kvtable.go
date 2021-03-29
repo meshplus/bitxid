@@ -75,14 +75,14 @@ func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
 	}
 	itemBytes := r.Store.Get(tbKey(did))
 	switch typ {
-	case DIDTableType:
-		di := &DIDItem{}
+	case AccountDIDTableType:
+		di := &AccountItem{}
 		err := di.Unmarshal(itemBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvtable unmarshal did item: %w", err)
 		}
 		return di, nil
-	case MethodTableType:
+	case ChainDIDTableType:
 		mi := &ChainItem{}
 		err := mi.Unmarshal(itemBytes)
 		if err != nil {

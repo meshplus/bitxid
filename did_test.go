@@ -13,18 +13,18 @@ import (
 
 // var drtPath string
 // var ddbPath string
-// var r *DIDRegistry
+// var r *AccountDIDRegistry
 
-var rootDID DID = DID("did:bitxhub:appchain001:0x00000001")
-var did DID = DID("did:bitxhub:appchain001:0x12345678")
+var rootAccountDID DID = DID("did:bitxhub:appchain001:0x00000001")
+var testAccountDID DID = DID("did:bitxhub:appchain001:0x12345678")
 
-var diddoc DIDDoc = getDIDDoc(0)
-var diddocA DIDDoc = getDIDDoc(1)
-var diddocB DIDDoc = getDIDDoc(2)
+var accountDoc AccountDoc = getAccountDoc(0)
+var accountDocA AccountDoc = getAccountDoc(1)
+var accountDocB AccountDoc = getAccountDoc(2)
 
-func getDIDDoc(ran int) DIDDoc {
-	docE := DIDDoc{}
-	docE.ID = did
+func getAccountDoc(ran int) AccountDoc {
+	docE := AccountDoc{}
+	docE.ID = testAccountDID
 	docE.Type = int(AccountDocType)
 	pk1 := PubKey{
 		ID:           "KEY#1",
@@ -37,7 +37,7 @@ func getDIDDoc(ran int) DIDDoc {
 		PublicKeyPem: "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71",
 	}
 	if ran == 0 {
-		docE.ID = rootDID
+		docE.ID = rootAccountDID
 	} else if ran == 1 {
 		docE.PublicKey = []PubKey{pk1}
 	} else {
@@ -50,7 +50,7 @@ func getDIDDoc(ran int) DIDDoc {
 	return docE
 }
 
-func TestDIDMode_Internal(t *testing.T) {
+func TestDIDModeInternal(t *testing.T) {
 	r, drtPath, ddbPath := newDIDModeInternal(t)
 
 	testSetupDIDSucceed(t, r)
@@ -68,7 +68,7 @@ func TestDIDMode_Internal(t *testing.T) {
 	testDIDCloseSucceedInternal(t, r, drtPath, ddbPath)
 }
 
-func TestDIDMode_External(t *testing.T) {
+func TestDIDModeExternal(t *testing.T) {
 	r, drtPath := newDIDModeExternal(t)
 	testSetupDIDSucceed(t, r)
 	testHasDIDSucceed(t, r)
@@ -85,7 +85,7 @@ func TestDIDMode_External(t *testing.T) {
 	testDIDCloseSucceedExternal(t, r, drtPath)
 }
 
-func newDIDModeInternal(t *testing.T) (*DIDRegistry, string, string) {
+func newDIDModeInternal(t *testing.T) (*AccountDIDRegistry, string, string) {
 	dir1, err := ioutil.TempDir("testdata", "did.table")
 	assert.Nil(t, err)
 	dir2, err := ioutil.TempDir("testdata", "did.docdb")
@@ -99,12 +99,16 @@ func newDIDModeInternal(t *testing.T) (*DIDRegistry, string, string) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(ddbPath)
 	assert.Nil(t, err)
-	r, err := NewDIDRegistry(s1, l, WithDIDDocStorage(s2))
+	r, err := NewAccountDIDRegistry(s1, l,
+		WithAccountDocStorage(s2),
+		WithDIDAdmin(rootAccountDID),
+		WithGenesisAccountDoc(DocOption{Content: &accountDoc}),
+	)
 	assert.Nil(t, err)
 	return r, drtPath, ddbPath
 }
 
-func newDIDModeExternal(t *testing.T) (*DIDRegistry, string) {
+func newDIDModeExternal(t *testing.T) (*AccountDIDRegistry, string) {
 	dir1, err := ioutil.TempDir("testdata", "did.table")
 	assert.Nil(t, err)
 	drtPath := dir1
@@ -112,41 +116,44 @@ func newDIDModeExternal(t *testing.T) (*DIDRegistry, string) {
 	l := loggerGet(loggerAccountDID)
 	s1, err := leveldb.New(drtPath)
 	assert.Nil(t, err)
-	r, err := NewDIDRegistry(s1, l)
+	r, err := NewAccountDIDRegistry(s1, l,
+		WithDIDAdmin(rootAccountDID),
+		WithGenesisAccountDoc(DocOption{ID: rootAccountDID, Addr: "/addr/to/doc", Hash: []byte{1}}),
+	)
 	assert.Nil(t, err)
 	return r, drtPath
 }
 
-func testSetupDIDSucceed(t *testing.T, r *DIDRegistry) {
+func testSetupDIDSucceed(t *testing.T, r *AccountDIDRegistry) {
 	err := r.SetupGenesis()
 	assert.Nil(t, err)
 }
 
-func testHasDIDSucceed(t *testing.T, r *DIDRegistry) {
-	ret1 := r.HasDID(DID(r.GenesisDID))
+func testHasDIDSucceed(t *testing.T, r *AccountDIDRegistry) {
+	ret1 := r.HasDID(DID(r.GenesisAccountDID))
 	assert.Equal(t, true, ret1)
 }
 
-func testDIDAddAdminsSucceed(t *testing.T, r *DIDRegistry) {
+func testDIDAddAdminsSucceed(t *testing.T, r *AccountDIDRegistry) {
 	err := r.AddAdmin(admin)
 	assert.Nil(t, err)
 	ret := r.HasAdmin(admin)
 	assert.Equal(t, true, ret)
 }
 
-func testDIDRemoveAdminsSucceed(t *testing.T, r *DIDRegistry) {
+func testDIDRemoveAdminsSucceed(t *testing.T, r *AccountDIDRegistry) {
 	err := r.RemoveAdmin(admin)
 	assert.Nil(t, err)
 	ret := r.HasAdmin(admin)
 	assert.Equal(t, false, ret)
 }
 
-func testDIDRegisterSucceedInternal(t *testing.T, r *DIDRegistry) {
-	docABytes, err := Marshal(diddocA)
+func testDIDRegisterSucceedInternal(t *testing.T, r *AccountDIDRegistry) {
+	docABytes, err := Marshal(accountDocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docABytes)
-	docAddrE := "./" + string(did)
-	docAddr, docHash, err := r.Register(DocOption{Content: &diddocA})
+	docAddrE := "./" + string(testAccountDID)
+	docAddr, docHash, err := r.RegisterWithDoc(&accountDocA)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	strHashE := fmt.Sprintf("%x", docHashE)
@@ -154,21 +161,21 @@ func testDIDRegisterSucceedInternal(t *testing.T, r *DIDRegistry) {
 	assert.Equal(t, docAddrE, docAddr)
 }
 
-func testDIDRegisterSucceedExternal(t *testing.T, r *DIDRegistry) {
-	docABytes, err := Marshal(diddocA)
+func testDIDRegisterSucceedExternal(t *testing.T, r *AccountDIDRegistry) {
+	docABytes, err := Marshal(accountDocA)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docABytes)
-	docAddrE := "./addr/" + string(did)
-	_, _, err = r.Register(DocOption{ID: did, Addr: docAddrE, Hash: docHashE[:]})
+	docAddrE := "./addr/" + string(testAccountDID)
+	_, _, err = r.Register(testAccountDID, docAddrE, docHashE[:])
 	assert.Nil(t, err)
 }
 
-func testDIDUpdateSucceedInternal(t *testing.T, r *DIDRegistry) {
-	docBBytes, err := Marshal(diddocB)
+func testDIDUpdateSucceedInternal(t *testing.T, r *AccountDIDRegistry) {
+	docBBytes, err := Marshal(accountDocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)
-	docAddrE := "./" + string(did)
-	docAddr, docHash, err := r.Update(DocOption{Content: &diddocB})
+	docAddrE := "./" + string(testAccountDID)
+	docAddr, docHash, err := r.UpdateWithDoc(&accountDocB)
 	assert.Nil(t, err)
 	strHash := fmt.Sprintf("%x", docHash)
 	strHashE := fmt.Sprintf("%x", docHashE)
@@ -176,27 +183,27 @@ func testDIDUpdateSucceedInternal(t *testing.T, r *DIDRegistry) {
 	assert.Equal(t, docAddrE, docAddr)
 }
 
-func testDIDUpdateSucceedExternal(t *testing.T, r *DIDRegistry) {
-	docBBytes, err := Marshal(diddocB)
+func testDIDUpdateSucceedExternal(t *testing.T, r *AccountDIDRegistry) {
+	docBBytes, err := Marshal(accountDocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)
-	docAddrE := "/addr/" + string(did)
-	_, _, err = r.Update(DocOption{ID: did, Addr: docAddrE, Hash: docHashE[:]})
+	docAddrE := "/addr/" + string(testAccountDID)
+	_, _, err = r.Update(testAccountDID, docAddrE, docHashE[:])
 	assert.Nil(t, err)
 }
 
-func testDIDResolveSucceedInternal(t *testing.T, r *DIDRegistry) {
-	item, doc, _, err := r.Resolve(did)
-	docBBytes, err := Marshal(diddocB)
+func testDIDResolveSucceedInternal(t *testing.T, r *AccountDIDRegistry) {
+	item, doc, _, err := r.Resolve(testAccountDID)
+	docBBytes, err := Marshal(accountDocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
-	assert.Equal(t, &diddocB, doc) // compare doc
-	itemE := DIDItem{
+	assert.Equal(t, &accountDocB, doc) // compare doc
+	itemE := AccountItem{
 		BasicItem{
-			ID:      did,
+			ID:      testAccountDID,
 			DocHash: docHashE[:],
-			DocAddr: "./" + string(did),
+			DocAddr: "./" + string(testAccountDID),
 			Status:  Normal},
 	}
 	assert.Equal(t, itemE.ID, item.ID)
@@ -205,18 +212,18 @@ func testDIDResolveSucceedInternal(t *testing.T, r *DIDRegistry) {
 	assert.Equal(t, itemE.Status, item.Status)
 }
 
-func testDIDResolveSucceedExternal(t *testing.T, r *DIDRegistry) {
-	item, doc, _, err := r.Resolve(did)
+func testDIDResolveSucceedExternal(t *testing.T, r *AccountDIDRegistry) {
+	item, doc, _, err := r.Resolve(testAccountDID)
 	assert.Nil(t, err)
 	assert.Nil(t, doc)
-	docBBytes, err := Marshal(diddocB)
+	docBBytes, err := Marshal(accountDocB)
 	docHashE := sha256.Sum256(docBBytes)
 	assert.Nil(t, err)
-	itemE := DIDItem{
+	itemE := AccountItem{
 		BasicItem{
-			ID:      did,
+			ID:      testAccountDID,
 			DocHash: docHashE[:],
-			DocAddr: "/addr/" + string(did),
+			DocAddr: "/addr/" + string(testAccountDID),
 			Status:  Normal},
 	}
 	assert.Equal(t, itemE.ID, item.ID)
@@ -225,30 +232,30 @@ func testDIDResolveSucceedExternal(t *testing.T, r *DIDRegistry) {
 	assert.Equal(t, itemE.Status, item.Status)
 }
 
-func testDIDFreezeSucceed(t *testing.T, r *DIDRegistry) {
-	err := r.Freeze(did)
+func testDIDFreezeSucceed(t *testing.T, r *AccountDIDRegistry) {
+	err := r.Freeze(testAccountDID)
 	assert.Nil(t, err)
-	item, _, _, err := r.Resolve(did)
+	item, _, _, err := r.Resolve(testAccountDID)
 	assert.Nil(t, err)
 	assert.Equal(t, Frozen, item.Status)
 }
 
-func testDIDUnFreezeSucceed(t *testing.T, r *DIDRegistry) {
-	err := r.UnFreeze(did)
+func testDIDUnFreezeSucceed(t *testing.T, r *AccountDIDRegistry) {
+	err := r.UnFreeze(testAccountDID)
 	assert.Nil(t, err)
-	item, _, _, err := r.Resolve(did)
+	item, _, _, err := r.Resolve(testAccountDID)
 	assert.Nil(t, err)
 	assert.Equal(t, Normal, item.Status)
 }
 
-func testDIDDeleteSucceed(t *testing.T, r *DIDRegistry) {
-	err := r.Delete(did)
+func testDIDDeleteSucceed(t *testing.T, r *AccountDIDRegistry) {
+	err := r.Delete(testAccountDID)
 	assert.Nil(t, err)
-	err = r.Delete(rootDID)
+	err = r.Delete(rootAccountDID)
 	assert.Nil(t, err)
 }
 
-func testDIDCloseSucceedInternal(t *testing.T, r *DIDRegistry, path ...string) {
+func testDIDCloseSucceedInternal(t *testing.T, r *AccountDIDRegistry, path ...string) {
 	err := r.Table.Close()
 	assert.Nil(t, err)
 	err = r.Docdb.Close()
@@ -260,7 +267,7 @@ func testDIDCloseSucceedInternal(t *testing.T, r *DIDRegistry, path ...string) {
 	}
 }
 
-func testDIDCloseSucceedExternal(t *testing.T, r *DIDRegistry, path ...string) {
+func testDIDCloseSucceedExternal(t *testing.T, r *AccountDIDRegistry, path ...string) {
 	err := r.Table.Close()
 	assert.Nil(t, err)
 

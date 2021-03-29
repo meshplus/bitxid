@@ -55,8 +55,8 @@ type TableType int
 
 // type of doc
 const (
-	MethodTableType TableType = iota
-	DIDTableType
+	ChainDIDTableType TableType = iota
+	AccountDIDTableType
 )
 
 // KeyType .

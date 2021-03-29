@@ -26,18 +26,18 @@ func Unmarshal(b []byte, s interface{}) error {
 	return nil
 }
 
-// UnmarshalDIDDoc converts byte doc to struct doc
-func UnmarshalDIDDoc(docBytes []byte) (DIDDoc, error) {
-	docStruct := DIDDoc{}
+// UnmarshalAccountDoc converts byte doc to struct doc
+func UnmarshalAccountDoc(docBytes []byte) (AccountDoc, error) {
+	docStruct := AccountDoc{}
 	err := Unmarshal(docBytes, &docStruct)
 	if err != nil {
-		return DIDDoc{}, err
+		return AccountDoc{}, err
 	}
 	return docStruct, nil
 }
 
-// MarshalDIDDoc converts struct doc to byte doc
-func MarshalDIDDoc(docStruct DIDDoc) ([]byte, error) {
+// MarshalAccountDoc converts struct doc to byte doc
+func MarshalAccountDoc(docStruct AccountDoc) ([]byte, error) {
 	docBytes, err := Marshal(docStruct)
 	if err != nil {
 		return nil, err

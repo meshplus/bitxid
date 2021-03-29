@@ -7,19 +7,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var testDid = DID("did:bitxhub:test-method:test-address")
+
 func TestGetRootMethod(t *testing.T) {
-	method := DID(did).GetRootMethod()
+	method := DID(testDid).GetRootMethod()
 	assert.Equal(t, "bitxhub", method)
 }
 
 func TestGetSubMethod(t *testing.T) {
-	method := DID(did).GetSubMethod()
-	assert.Equal(t, "appchain001", method)
+	method := DID(testDid).GetSubMethod()
+	assert.Equal(t, "test-method", method)
 }
 
 func TestGetAddress(t *testing.T) {
-	addr := DID(did).GetAddress()
-	assert.Equal(t, "0x12345678", addr)
+	addr := DID(testDid).GetAddress()
+	assert.Equal(t, "test-address", addr)
 }
 
 func TestErrJoin(t *testing.T) {

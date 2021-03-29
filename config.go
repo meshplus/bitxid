@@ -24,9 +24,9 @@ type BitXIDConfig struct {
 
 // DIDConfig .
 type DIDConfig struct {
-	Admin    DID     `toml:"admin" json:"admin"`
-	AdminDoc *DIDDoc `toml:"admin_doc" json:"admin_doc"`
-	Addr     string  `toml:"addr" json:"addr"`
+	Admin    DID         `toml:"admin" json:"admin"`
+	AdminDoc *AccountDoc `toml:"admin_doc" json:"admin_doc"`
+	Addr     string      `toml:"addr" json:"addr"`
 }
 
 // MethodConfig .
@@ -66,8 +66,8 @@ func DefaultBitXIDConfig() (*BitXIDConfig, error) {
 	}, nil
 }
 
-func getAdminDoc() *DIDDoc {
-	doc := &DIDDoc{}
+func getAdminDoc() *AccountDoc {
+	doc := &AccountDoc{}
 	doc.ID = "did:bitxhub:appchain001:0x00000001"
 	doc.Type = int(ChainDocType)
 	pk := PubKey{
@@ -83,8 +83,8 @@ func getAdminDoc() *DIDDoc {
 	return doc
 }
 
-func genesisDIDDoc() *DIDDoc {
-	return &DIDDoc{
+func genesisAccountDoc() *AccountDoc {
+	return &AccountDoc{
 		BasicDoc: BasicDoc{
 			ID:   "did:bitxhub:appchain001:0x00000001",
 			Type: int(AccountDocType),

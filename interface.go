@@ -44,8 +44,8 @@ type BasicManager interface {
 	HasAdmin(caller DID) bool
 }
 
-// ChainDIDManager represents chain did management registry
-type ChainDIDManager interface {
+// ChainAccountDIDManager represents chain did management registry
+type ChainAccountDIDManager interface {
 	BasicManager
 	HasChainDID(method DID) bool
 
@@ -62,16 +62,20 @@ type ChainDIDManager interface {
 	Delete(method DID) error
 }
 
-// DIDManager represents account did management registry
-type DIDManager interface {
+// AccountDIDManager represents account did management registry
+type AccountDIDManager interface {
 	BasicManager
 	GetChainDID() DID
 	HasDID(did DID) bool
 
-	Register(docOption DocOption) (string, []byte, error)
-	Resolve(did DID) (*DIDItem, *DIDDoc, bool, error)
-	Update(docOption DocOption) (string, []byte, error)
+	Register(chainDID DID, addr string, hash []byte) (string, []byte, error)
+	RegisterWithDoc(doc Doc) (string, []byte, error)
+	Update(chainDID DID, addr string, hash []byte) (string, []byte, error)
+	UpdateWithDoc(doc Doc) (string, []byte, error)
+	// Register(docOption DocOption) (string, []byte, error)
+	// Update(docOption DocOption) (string, []byte, error)
 	Freeze(did DID) error
 	UnFreeze(did DID) error
 	Delete(did DID) error
+	Resolve(did DID) (*AccountItem, *AccountDoc, bool, error)
 }

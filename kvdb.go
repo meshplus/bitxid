@@ -76,7 +76,7 @@ func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
 	valueBytes := d.Store.Get(docKey(did))
 	switch typ {
 	case AccountDocType:
-		dt := &DIDDoc{}
+		dt := &AccountDoc{}
 		err := dt.Unmarshal(valueBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvdb unmarshal did doc: %w", err)

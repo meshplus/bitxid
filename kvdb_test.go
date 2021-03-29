@@ -16,10 +16,10 @@ func TestDBCURD(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	key := DID("did:bitxhub:appchain001:.")
-	value := DIDDoc{
+	value := AccountDoc{
 		BasicDoc: BasicDoc{ID: "did:bitxhub:appchain001:."},
 	}
-	valueUpdated := DIDDoc{
+	valueUpdated := AccountDoc{
 		BasicDoc: BasicDoc{ID: "did:bitxhub:appchain001:."},
 		Service:  "test",
 	}
@@ -39,14 +39,14 @@ func TestDBCURD(t *testing.T) {
 	// test get:
 	ret3, err := d.Get(key, AccountDocType)
 	assert.Nil(t, err)
-	assert.Equal(t, *ret3.(*DIDDoc), value)
+	assert.Equal(t, *ret3.(*AccountDoc), value)
 	// test update:
 	ret4, err := d.Update(&valueUpdated)
 	assert.Nil(t, err)
 	assert.Equal(t, "./"+string(key), ret4)
 	ret5, err := d.Get(key, AccountDocType)
 	assert.Nil(t, err)
-	assert.Equal(t, *ret5.(*DIDDoc), valueUpdated)
+	assert.Equal(t, *ret5.(*AccountDoc), valueUpdated)
 	// test delete:
 	d.Delete(key)
 	// assert.Nil(t, err)
