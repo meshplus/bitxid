@@ -32,8 +32,13 @@ func (cd *ChainDoc) GetID() DID {
 	return cd.ID
 }
 
-func (md *ChainDoc) IsValidFormat() bool {
-	if md.Created == 0 || !md.ID.IsChainDIDFormat() {
+// GetType .
+func (cd *ChainDoc) GetType() int {
+	return cd.BasicDoc.Type
+}
+
+func (cd *ChainDoc) IsValidFormat() bool {
+	if cd.Created == 0 || cd.GetType() != int(ChainDIDType) {
 		return false
 	}
 	return true
@@ -41,12 +46,12 @@ func (md *ChainDoc) IsValidFormat() bool {
 
 var _ TableItem = (*ChainItem)(nil)
 
-// ChainItem reperesents a method item, element of registry table,
+// ChainItem reperesents a chain did item, element of registry table,
 // it stores all data about a did.
 // Registry table is used together with docdb.
 type ChainItem struct {
 	BasicItem
-	Owner DID // owner of the method, is a did, TODO: owner ==> owners
+	Owner DID // owner of the chain did, is a did, TODO: owner ==> owners
 }
 
 // Marshal .
@@ -64,7 +69,7 @@ func (mi *ChainItem) GetID() DID {
 	return mi.ID
 }
 
-var _ ChainDIDManager = (*ChainDIDRegistry)(nil)
+var _ ChainAccountDIDManager = (*ChainDIDRegistry)(nil)
 
 // ChainDIDRegistry .
 type ChainDIDRegistry struct {
@@ -88,7 +93,7 @@ func NewChainDIDRegistry(ts storage.Storage, l logrus.FieldLogger, options ...fu
 		Table:  rt,
 		Docdb:  db,
 		logger: l,
-		// Admins: []DID{genesisDIDDoc().GetID()},
+		// Admins: []DID{genesisAccountDoc().GetID()},
 		// IsRoot: true,
 		// GenesisChainDID: doc.GetID(),
 		// GenesisChainDoc: DocOption{
@@ -115,7 +120,7 @@ func WithChainDocStorage(ds storage.Storage) func(*ChainDIDRegistry) {
 	}
 }
 
-// WithMethodAdmin .
+// WithAdmin .
 func WithAdmin(a DID) func(*ChainDIDRegistry) {
 	return func(cr *ChainDIDRegistry) {
 		cr.Admins = []DID{a}
@@ -145,7 +150,7 @@ func (r *ChainDIDRegistry) SetupGenesis() error {
 	// 	return fmt.Errorf("genesis ChainDID not matched with ChainDoc")
 	// }
 
-	// register method:
+	// register chain did:
 	err := r.Apply(r.Admins[0], r.GenesisChainDID)
 	if err != nil {
 		return fmt.Errorf("genesis apply err: %w", err)
@@ -156,14 +161,11 @@ func (r *ChainDIDRegistry) SetupGenesis() error {
 	}
 	if r.Mode == ExternalDocDB {
 		_, _, err = r.Register(r.GenesisChainDoc.ID, r.GenesisChainDoc.Addr, r.GenesisChainDoc.Hash)
-		if err != nil {
-			return fmt.Errorf("genesis register err: %w", err)
-		}
 	} else {
 		_, _, err = r.RegisterWithDoc(r.GenesisChainDoc.Content)
-		if err != nil {
-			return fmt.Errorf("genesis register err: %w", err)
-		}
+	}
+	if err != nil {
+		return fmt.Errorf("genesis register err: %w", err)
 	}
 
 	return nil
@@ -264,23 +266,22 @@ func (r *ChainDIDRegistry) Register(chainDID DID, addr string, hash []byte) (str
 	return r.updateByStatus(DocOption{ID: chainDID, Addr: addr, Hash: hash}, ApplySuccess, Normal)
 }
 
-// Register with doc
+// RegisterWithDoc registers with doc
 func (r *ChainDIDRegistry) RegisterWithDoc(doc Doc) (string, []byte, error) {
 	return r.updateByStatus(DocOption{Content: doc}, ApplySuccess, Normal)
 }
 
-// Update with doc
+// Update updates data about a chain did
+// ATN: only did who owns method-name should call this.
 func (r *ChainDIDRegistry) Update(chainDID DID, addr string, hash []byte) (string, []byte, error) {
 	return r.updateByStatus(DocOption{ID: chainDID, Addr: addr, Hash: hash}, Normal, Normal)
 }
 
-// Update updates data about a chain did
-// ATN: only did who owns method-name should call this.
+// Update with doc
 func (r *ChainDIDRegistry) UpdateWithDoc(doc Doc) (string, []byte, error) {
 	return r.updateByStatus(DocOption{Content: doc}, Normal, Normal)
 }
 
-// update with expected status
 func (r *ChainDIDRegistry) updateByStatus(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, error) {
 	// update doc concerned data
 	docAddr, docHash, chainDID, err := r.updateDocdbOrNot(docOption, expectedStatus, status)
@@ -289,7 +290,7 @@ func (r *ChainDIDRegistry) updateByStatus(docOption DocOption, expectedStatus St
 	}
 
 	// update table concerned data
-	item, err := r.Table.GetItem(chainDID, MethodTableType)
+	item, err := r.Table.GetItem(chainDID, ChainDIDType)
 	if err != nil {
 		return docAddr, docHash, fmt.Errorf("table get item: %w ", err)
 	}
@@ -393,21 +394,21 @@ func (r *ChainDIDRegistry) Delete(chainDID DID) error {
 	return nil
 }
 
-// Resolve looks up local-chain to resolve method.
-// @*DIDDoc returns nil if mode is ExternalDocDB
+// Resolve looks up local-chain to resolve chain did.
+// @*AccountDoc returns nil if mode is ExternalDocDB
 func (r *ChainDIDRegistry) Resolve(chainDID DID) (*ChainItem, *ChainDoc, bool, error) {
 	exist := r.HasChainDID(chainDID)
 	if exist == false {
 		return nil, nil, false, nil
 	}
-	item, err := r.Table.GetItem(chainDID, MethodTableType)
+	item, err := r.Table.GetItem(chainDID, ChainDIDType)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("Method resolve table get: %w", err)
 	}
 	itemM := item.(*ChainItem)
 
 	if r.Mode == InternalDocDB {
-		doc, err := r.Docdb.Get(chainDID, ChainDocType)
+		doc, err := r.Docdb.Get(chainDID, ChainDIDType)
 		if err != nil {
 			return itemM, nil, true, fmt.Errorf("Method resolve docdb get: %w", err)
 		}
@@ -427,7 +428,7 @@ func (r *ChainDIDRegistry) GetChainDIDStatus(chainDID DID) StatusType {
 	if !r.Table.HasItem(chainDID) {
 		return Initial
 	}
-	item, err := r.Table.GetItem(chainDID, MethodTableType)
+	item, err := r.Table.GetItem(chainDID, ChainDIDType)
 	if err != nil {
 		r.logger.Error("chainDID status get item:", err)
 		return BadStatus
@@ -438,7 +439,7 @@ func (r *ChainDIDRegistry) GetChainDIDStatus(chainDID DID) StatusType {
 
 // auditStatus .
 func (r *ChainDIDRegistry) auditStatus(chainDID DID, status StatusType) error {
-	item, err := r.Table.GetItem(chainDID, MethodTableType)
+	item, err := r.Table.GetItem(chainDID, ChainDIDType)
 	if err != nil {
 		return fmt.Errorf("aduitstatus table get: %w", err)
 	}

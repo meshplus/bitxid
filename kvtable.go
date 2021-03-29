@@ -68,21 +68,21 @@ func (r *KVTable) UpdateItem(item TableItem) error {
 }
 
 // GetItem checks ang gets
-func (r *KVTable) GetItem(did DID, typ TableType) (TableItem, error) {
+func (r *KVTable) GetItem(did DID, typ DIDType) (TableItem, error) {
 	exist := r.HasItem(did)
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
 	}
 	itemBytes := r.Store.Get(tbKey(did))
 	switch typ {
-	case AccountDIDTableType:
+	case AccountDIDType:
 		di := &AccountItem{}
 		err := di.Unmarshal(itemBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvtable unmarshal did item: %w", err)
 		}
 		return di, nil
-	case ChainDIDTableType:
+	case ChainDIDType:
 		mi := &ChainItem{}
 		err := mi.Unmarshal(itemBytes)
 		if err != nil {

@@ -39,7 +39,7 @@ func (dd *AccountDoc) GetType() int {
 }
 
 func (dd *AccountDoc) IsValidFormat() bool {
-	if dd.Created == 0 || !dd.ID.IsAccountDIDFormat() {
+	if dd.Created == 0 || dd.GetType() != int(AccountDIDType) {
 		return false
 	}
 	return true

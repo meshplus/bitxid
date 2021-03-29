@@ -37,14 +37,14 @@ func TestDBCURD(t *testing.T) {
 	// assert.Nil(t, err)
 	assert.Equal(t, true, ret2)
 	// test get:
-	ret3, err := d.Get(key, AccountDocType)
+	ret3, err := d.Get(key, AccountDIDType)
 	assert.Nil(t, err)
 	assert.Equal(t, *ret3.(*AccountDoc), value)
 	// test update:
 	ret4, err := d.Update(&valueUpdated)
 	assert.Nil(t, err)
 	assert.Equal(t, "./"+string(key), ret4)
-	ret5, err := d.Get(key, AccountDocType)
+	ret5, err := d.Get(key, AccountDIDType)
 	assert.Nil(t, err)
 	assert.Equal(t, *ret5.(*AccountDoc), valueUpdated)
 	// test delete:

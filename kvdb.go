@@ -68,21 +68,21 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 }
 
 // Get .
-func (d *KVDocDB) Get(did DID, typ DocType) (Doc, error) {
+func (d *KVDocDB) Get(did DID, typ DIDType) (Doc, error) {
 	exist := d.Has(did)
 	if exist == false {
 		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
 	}
 	valueBytes := d.Store.Get(docKey(did))
 	switch typ {
-	case AccountDocType:
+	case AccountDIDType:
 		dt := &AccountDoc{}
 		err := dt.Unmarshal(valueBytes)
 		if err != nil {
 			return nil, fmt.Errorf("kvdb unmarshal did doc: %w", err)
 		}
 		return dt, nil
-	case ChainDocType:
+	case ChainDIDType:
 		mt := &ChainDoc{}
 		err := mt.Unmarshal(valueBytes)
 		if err != nil {

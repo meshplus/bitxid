@@ -25,7 +25,7 @@ var mdocB ChainDoc = getChainDoc(2)
 func getChainDoc(ran int) ChainDoc {
 	docE := ChainDoc{}
 	docE.ID = chainDID
-	docE.Type = int(ChainDocType)
+	docE.Type = int(ChainDIDType)
 	pk1 := PubKey{
 		ID:           "KEY#1",
 		Type:         "Ed25519",

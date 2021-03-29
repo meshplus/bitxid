@@ -41,22 +41,13 @@ const (
 	Normal         StatusType = "Normal"
 )
 
-// DocType .
-type DocType int
+// DIDType .
+type DIDType int
 
-// type of doc
+// type of did
 const (
-	ChainDocType DocType = iota
-	AccountDocType
-)
-
-// TableType .
-type TableType int
-
-// type of doc
-const (
-	ChainDIDTableType TableType = iota
-	AccountDIDTableType
+	ChainDIDType DIDType = iota
+	AccountDIDType
 )
 
 // KeyType .
@@ -124,24 +115,6 @@ func (did DID) IsValidFormat() bool {
 	return true
 }
 
-// IsAccountDIDFormat .
-func (did DID) IsAccountDIDFormat() bool {
-	s := strings.Split(string(did), ":")
-	if len(s) != 4 || s[0] != "did" || s[1] == "" || s[2] == "" || s[3] == "." {
-		return false
-	}
-	return true
-}
-
-// IsChainDIDFormat .
-func (did DID) IsChainDIDFormat() bool {
-	s := strings.Split(string(did), ":")
-	if len(s) != 4 || s[0] != "did" || s[1] == "" || s[2] == "" || s[3] != "." {
-		return false
-	}
-	return true
-}
-
 // GetRootMethod get root method from did-format string
 func (did DID) GetRootMethod() string {
 	if !did.IsValidFormat() {
@@ -172,6 +145,13 @@ func (did DID) GetAddress() string {
 // GetChainDID .
 func (did DID) GetChainDID() string {
 	return "did:" + did.GetRootMethod() + ":" + did.GetSubMethod() + ":."
+}
+
+func (did DID) GetType() int {
+	if did.GetAddress() == "." {
+		return int(ChainDIDType)
+	}
+	return int(AccountDIDType)
 }
 
 func errJoin(module string, err error) error {

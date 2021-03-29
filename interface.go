@@ -6,6 +6,7 @@ type Doc interface {
 	Unmarshal(docBytes []byte) error
 	GetID() DID
 	IsValidFormat() bool
+	GetType() int
 }
 
 // TableItem represents the table item of a registry table
@@ -19,7 +20,7 @@ type TableItem interface {
 type DocDB interface {
 	Create(doc Doc) (string, error)
 	Update(doc Doc) (string, error)
-	Get(did DID, typ DocType) (Doc, error)
+	Get(did DID, typ DIDType) (Doc, error)
 	Delete(did DID)
 	Has(did DID) bool
 	Close() error
@@ -29,7 +30,7 @@ type DocDB interface {
 type RegistryTable interface {
 	CreateItem(item TableItem) error
 	UpdateItem(item TableItem) error
-	GetItem(did DID, typ TableType) (TableItem, error)
+	GetItem(did DID, typ DIDType) (TableItem, error)
 	HasItem(did DID) bool
 	DeleteItem(did DID)
 	Close() error

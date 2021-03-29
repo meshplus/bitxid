@@ -52,7 +52,7 @@ func TestTABLECURD(t *testing.T) {
 	err = rt.CreateItem(&item)
 	assert.Nil(t, err)
 	// test CreateItem:
-	item2, err := rt.GetItem(key, ChainDIDTableType)
+	item2, err := rt.GetItem(key, ChainDIDType)
 	assert.Nil(t, err)
 	assert.Equal(t, item, *item2.(*ChainItem))
 	// test
@@ -66,7 +66,7 @@ func TestTABLECURD(t *testing.T) {
 	}
 	err = rt.UpdateItem(&item3)
 	assert.Nil(t, err)
-	item4, err := rt.GetItem(key, ChainDIDTableType)
+	item4, err := rt.GetItem(key, ChainDIDType)
 	assert.Nil(t, err)
 	assert.Equal(t, item3, *item4.(*ChainItem))
 	// test DeleteItem:
