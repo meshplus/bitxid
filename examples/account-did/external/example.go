@@ -127,6 +127,7 @@ func main() {
 
 	// 删除 Account DID：
 	ar.Delete(accountDID)
+	fakeDeleteDoc(accountDID) // 假设此处去删除链下存储的文档
 
 	// 清除存储
 	ar.Table.Close()
@@ -179,4 +180,9 @@ func fakeReceiveInterchainTX() *pb.Transaction {
 func fakeVerify(a []bitxid.Auth, tx *pb.Transaction) bool {
 	// 此处理论上只需要成功匹配一种验证方式就可以返回true
 	return true
+}
+
+func fakeDeleteDoc(did bitxid.DID) error {
+	// 去链下存储删除对应文档
+	return nil
 }
