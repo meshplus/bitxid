@@ -33,6 +33,11 @@ func (dd *AccountDoc) GetID() DID {
 	return dd.ID
 }
 
+// GetType .
+func (dd *AccountDoc) GetType() int {
+	return dd.BasicDoc.Type
+}
+
 func (dd *AccountDoc) IsValidFormat() bool {
 	if dd.Created == 0 || !dd.ID.IsAccountDIDFormat() {
 		return false
@@ -215,6 +220,9 @@ func (r *AccountDIDRegistry) Register(accountDID DID, addr string, hash []byte) 
 
 // RegisterWithDoc registers with doc
 func (r *AccountDIDRegistry) RegisterWithDoc(doc Doc) (string, []byte, error) {
+	if !doc.IsValidFormat() {
+		return "", nil, fmt.Errorf("Invalid doc format")
+	}
 	return r.updateByStatus(DocOption{Content: doc}, Initial, Normal)
 }
 
@@ -230,6 +238,7 @@ func (r *AccountDIDRegistry) UpdateWithDoc(doc Doc) (string, []byte, error) {
 }
 
 func (r *AccountDIDRegistry) updateByStatus(docOption DocOption, expectedStatus StatusType, status StatusType) (string, []byte, error) {
+
 	docAddr, docHash, did, err := r.updateDocdbOrNot(docOption, expectedStatus, status)
 	if err != nil {
 		return "", nil, err
@@ -248,7 +257,7 @@ func (r *AccountDIDRegistry) updateByStatus(docOption DocOption, expectedStatus 
 			return docAddr, docHash, fmt.Errorf("register DID on table: %w", err)
 		}
 	} else { // update
-		item, err := r.Table.GetItem(did, AccountDIDTableType)
+		item, err := r.Table.GetItem(did, AccountDIDType)
 		if err != nil {
 			return docAddr, docHash, fmt.Errorf("DID table get: %w", err)
 		}
@@ -346,14 +355,14 @@ func (r *AccountDIDRegistry) Resolve(did DID) (*AccountItem, *AccountDoc, bool, 
 		return nil, nil, false, fmt.Errorf("DID %s not existed", did)
 	}
 
-	item, err := r.Table.GetItem(did, AccountDIDTableType)
+	item, err := r.Table.GetItem(did, AccountDIDType)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("resolve DID table get: %w", err)
 	}
 	itemD := item.(*AccountItem)
 
 	if r.Mode == InternalDocDB {
-		doc, err := r.Docdb.Get(did, AccountDocType)
+		doc, err := r.Docdb.Get(did, AccountDIDType)
 		if err != nil {
 			return itemD, nil, true, fmt.Errorf("resolve DID docdb get: %w", err)
 		}
@@ -387,7 +396,7 @@ func (r *AccountDIDRegistry) getDIDStatus(did DID) StatusType {
 	if !r.Table.HasItem(did) {
 		return Initial
 	}
-	item, err := r.Table.GetItem(did, AccountDIDTableType)
+	item, err := r.Table.GetItem(did, AccountDIDType)
 	if err != nil {
 		r.logger.Error("DID status get item:", err)
 		return BadStatus
@@ -406,7 +415,7 @@ func (r *AccountDIDRegistry) owns(caller string, did DID) bool {
 }
 
 func (r *AccountDIDRegistry) auditStatus(did DID, status StatusType) error {
-	item, err := r.Table.GetItem(did, AccountDIDTableType)
+	item, err := r.Table.GetItem(did, AccountDIDType)
 	if err != nil {
 		return fmt.Errorf("DID status get: %w", err)
 	}

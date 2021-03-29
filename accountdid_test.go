@@ -25,7 +25,7 @@ var accountDocB AccountDoc = getAccountDoc(2)
 func getAccountDoc(ran int) AccountDoc {
 	docE := AccountDoc{}
 	docE.ID = testAccountDID
-	docE.Type = int(AccountDocType)
+	docE.Type = int(AccountDIDType)
 	pk1 := PubKey{
 		ID:           "KEY#1",
 		Type:         "Ed25519",
