@@ -1,9 +1,9 @@
 # BitXID
 
-BitXID is an DID framework comply with W3C DID(Decentralized Identifiers) specifications. It has the following features:
+BitXID is a DID framework which complys with W3C DID(Decentralized Identifiers) specifications. It has the following features:
 
 1. **Multiple storage management**: BitXID offers both on-chain storage and off-chain storage for DID storage. The best practice will be store small amounts of data(e.g. id, status, etc.) on-chain while store large amounts of data(e.g. public keys, authentication methods, etc.) off-chain(e.g. IPFS), and combines them by store hash of the data on-chain.
-2. **Multiple method management**: not only can BitXID be used to build digital identity for a blockchain but also it can be to build digital identity ecosystem for a blockchain network(i.e. cross-chain platform).
+2. **Multiple methods management**: not only can BitXID be used to build digital identity for a blockchain but also it can be to build digital identity ecosystem for a blockchain network(i.e. cross-chain platform).
 
 ## Installation
 
@@ -25,7 +25,7 @@ BitXID is already used by several great projects, among which [BitXHub](https://
 
 ## Usage
 
-Usage guide can be found in [here](./docs/usage-chn.md).
+Usage guide documantation can be found in [here](./docs/usage-chn.md).
 
 ## Contact
 

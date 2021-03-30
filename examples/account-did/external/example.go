@@ -78,7 +78,7 @@ func main() {
 	accountDID := accountDoc.ID
 
 	// 初始化存储：
-	dirTable, _ := ioutil.TempDir("../../../testdata", "did.table")
+	dirTable, _ := ioutil.TempDir("", "did.table")
 	l := log.NewWithModule("account-did")
 	sTable, _ := leveldb.New(dirTable)
 

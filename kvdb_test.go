@@ -10,7 +10,7 @@ import (
 )
 
 func TestDBCURD(t *testing.T) {
-	dir, err := ioutil.TempDir("testdata", "doc.db")
+	dir, err := ioutil.TempDir("", "doc.db")
 	assert.Nil(t, err)
 
 	defer os.RemoveAll(dir)

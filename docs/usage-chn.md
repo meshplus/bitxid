@@ -6,7 +6,7 @@ BitXID是遵循W3C DID规范的DID框架，可用于快速开发属于自己的D
 
 BitXID的主要分为两大模块：账户数字身份模块（Account DID）和链数字身份模块（Chain DID）。前者主要用于构建单链上的账户数字身份，后者主要用于构建跨链网络中的链数字身份。账户数字身份是指基于区块链上的账户地址的数字身份，而链身份是指区块链自己的数字身份。如果您只想在单链上使用DID，则可以只使用Account DID部分功能，如果您想在某个跨链平台上集成数字身份功能，则可以考虑Chain DID + Account DID的组合。
 
-BitXID 支持多种存储方式，给了开发者充足的选择权。BitXID中关于 **Account DID** 和 **Chain DID** 两部分功能的设计是的开发者者可以实现两种存储类型的DID应用，一种是 **InternalDocDB**，开发者可以将 DID Doc 存储在链上；另一种是 **ExternalDocDB**，开发者可以将 DID Doc 存储在链下。
+BitXID 支持多种存储方式，给了开发者充足的选择权。BitXID中关于 **Account DID** 和 **Chain DID** 两部分功能的设计使得开发者可以实现两种存储类型的DID应用，一种是 **InternalDocDB**，开发者可以将 DID Doc 存储在链上；另一种是 **ExternalDocDB**，开发者可以将 DID Doc 存储在链下。
 
 ## 快速开始
 
@@ -143,7 +143,7 @@ func main() {
 	}
 
 	// 初始化存储：
-	dirTable, _ := ioutil.TempDir("../../../testdata", "did.table")
+	dirTable, _ := ioutil.TempDir("../../../", "did.table")
 	l := log.NewWithModule("chain-did")
 	sTable, _ := leveldb.New(dirTable)
 

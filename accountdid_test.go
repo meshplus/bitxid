@@ -87,9 +87,9 @@ func TestDIDModeExternal(t *testing.T) {
 }
 
 func newDIDModeInternal(t *testing.T) (*AccountDIDRegistry, string, string) {
-	dir1, err := ioutil.TempDir("testdata", "did.table")
+	dir1, err := ioutil.TempDir("", "did.table") //
 	assert.Nil(t, err)
-	dir2, err := ioutil.TempDir("testdata", "did.docdb")
+	dir2, err := ioutil.TempDir("", "did.docdb")
 	assert.Nil(t, err)
 
 	drtPath := dir1
@@ -110,7 +110,7 @@ func newDIDModeInternal(t *testing.T) (*AccountDIDRegistry, string, string) {
 }
 
 func newDIDModeExternal(t *testing.T) (*AccountDIDRegistry, string) {
-	dir1, err := ioutil.TempDir("testdata", "did.table")
+	dir1, err := ioutil.TempDir("", "did.table")
 	assert.Nil(t, err)
 	drtPath := dir1
 	loggerInit()

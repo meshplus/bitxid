@@ -54,9 +54,9 @@ func getChainDoc(ran int) ChainDoc {
 }
 
 func newChainDIDModeInternal(t *testing.T) (*ChainDIDRegistry, string, string) {
-	dir1, err := ioutil.TempDir("testdata", "chainDID.table")
+	dir1, err := ioutil.TempDir("", "chainDID.table")
 	assert.Nil(t, err)
-	dir2, err := ioutil.TempDir("testdata", "chainDID.docdb")
+	dir2, err := ioutil.TempDir("", "chainDID.docdb")
 	assert.Nil(t, err)
 
 	mrtPath := dir1
@@ -73,7 +73,7 @@ func newChainDIDModeInternal(t *testing.T) (*ChainDIDRegistry, string, string) {
 }
 
 func newChainDIDModeExternal(t *testing.T) (*ChainDIDRegistry, string) {
-	dir1, err := ioutil.TempDir("testdata", "chainDID.table")
+	dir1, err := ioutil.TempDir("", "chainDID.table")
 	assert.Nil(t, err)
 	mrtPath := dir1
 

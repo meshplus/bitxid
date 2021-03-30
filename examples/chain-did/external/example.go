@@ -128,7 +128,7 @@ func main() {
 	}
 
 	// 初始化存储：
-	dirTable, _ := ioutil.TempDir("../../../testdata", "did.table")
+	dirTable, _ := ioutil.TempDir("", "did.table")
 	l := log.NewWithModule("chain-did")
 	sTable, _ := leveldb.New(dirTable)
 
