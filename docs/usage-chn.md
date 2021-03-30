@@ -298,7 +298,9 @@ mr, _ := bitxid.NewChainDIDRegistry(sTable, l,
 _ = mr.SetupGenesis()
 ```
 
-### 获取所在链身份
+### 获取自己的身份
+
+对链管理来说是`GenesisChainDID`，对账户管理来说是`GenesisAccountDID`。
 
 ```go
 chainDID := mr.GetSelfID()
@@ -451,6 +453,14 @@ mr.Delete(chainDID)
 ```
 
 ## Account DID
+
+### 获取链身份
+
+获取Account DID Registry所在链的身份：
+
+```
+chainDID := r.GetChainDID()
+```
 
 ### 注册
 
