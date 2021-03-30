@@ -1,11 +1,8 @@
 package bitxid
 
 import (
-	"testing"
-
 	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -17,13 +14,6 @@ var w *loggerWrapper
 
 type loggerWrapper struct {
 	loggers map[string]*logrus.Entry
-}
-
-func testUnmarshalConfig(t *testing.T) {
-	config, err := UnmarshalConfig("./config")
-	assert.Nil(t, err)
-	dConfig, err := DefaultBitXIDConfig()
-	assert.Equal(t, *dConfig, config.BitXIDConfig)
 }
 
 // Init initializes all loggers

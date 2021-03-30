@@ -131,7 +131,7 @@ func testSetupDIDSucceed(t *testing.T, r *AccountDIDRegistry) {
 }
 
 func testHasDIDSucceed(t *testing.T, r *AccountDIDRegistry) {
-	ret1 := r.HasDID(DID(r.GenesisAccountDID))
+	ret1 := r.HasAccountDID(DID(r.GenesisAccountDID))
 	assert.Equal(t, true, ret1)
 }
 

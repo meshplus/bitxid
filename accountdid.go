@@ -11,33 +11,34 @@ import (
 
 var _ Doc = (*AccountDoc)(nil)
 
-// AccountDoc .
+// AccountDoc represents account identity infomation
 type AccountDoc struct {
 	BasicDoc
 	Service string `json:"service"`
 }
 
-// Marshal .
+// Marshal marshals account doc
 func (dd *AccountDoc) Marshal() ([]byte, error) {
 	return Marshal(dd)
 }
 
-// Unmarshal .
+// Unmarshal unmarshals account doc
 func (dd *AccountDoc) Unmarshal(docBytes []byte) error {
 	err := Unmarshal(docBytes, &dd)
 	return err
 }
 
-// GetID .
+// GetID gets id of account doc
 func (dd *AccountDoc) GetID() DID {
 	return dd.ID
 }
 
-// GetType .
+// GetType gets type of account doc
 func (dd *AccountDoc) GetType() int {
 	return dd.BasicDoc.Type
 }
 
+// IsValidFormat checks whether account doc is valid format
 func (dd *AccountDoc) IsValidFormat() bool {
 	if dd.Created == 0 || dd.GetType() != int(AccountDIDType) {
 		return false
@@ -53,17 +54,17 @@ type AccountItem struct {
 	BasicItem
 }
 
-// Marshal .
+// Marshal marshals account item
 func (di *AccountItem) Marshal() ([]byte, error) {
 	return Marshal(di)
 }
 
-// Unmarshal .
+// Unmarshal unmarshals account item
 func (di *AccountItem) Unmarshal(docBytes []byte) error {
 	return Unmarshal(docBytes, &di)
 }
 
-// GetID .
+// GetID gets id of account item
 func (di *AccountItem) GetID() DID {
 	return di.ID
 }
@@ -111,7 +112,7 @@ func NewAccountDIDRegistry(ts storage.Storage, l logrus.FieldLogger, options ...
 	return ar, nil
 }
 
-// WithAccountDocStorage .
+// WithAccountDocStorage used for InternalDocDB mode
 func WithAccountDocStorage(ds storage.Storage) func(*AccountDIDRegistry) {
 	return func(ar *AccountDIDRegistry) {
 		db, _ := NewKVDocDB(ds)
@@ -120,14 +121,14 @@ func WithAccountDocStorage(ds storage.Storage) func(*AccountDIDRegistry) {
 	}
 }
 
-// WithDIDAdmin .
+// WithDIDAdmin used for admin setup
 func WithDIDAdmin(a DID) func(*AccountDIDRegistry) {
 	return func(ar *AccountDIDRegistry) {
 		ar.Admins = []DID{a}
 	}
 }
 
-// WithGenesisAccountDoc .
+// WithGenesisAccountDoc used for genesis account doc setup
 func WithGenesisAccountDoc(docOption DocOption) func(*AccountDIDRegistry) {
 	return func(ar *AccountDIDRegistry) {
 		ar.GenesisAccountDoc = docOption
@@ -167,17 +168,17 @@ func (r *AccountDIDRegistry) SetupGenesis() error {
 	return nil
 }
 
-// GetSelfID .
+// GetSelfID gets genesis did of the registry
 func (r *AccountDIDRegistry) GetSelfID() DID {
-	return DID(r.GenesisAccountDID.GetChainDID())
+	return r.GenesisAccountDID
 }
 
-// GetAdmins .
+// GetAdmins gets admin list of the registry
 func (r *AccountDIDRegistry) GetAdmins() []DID {
 	return r.Admins
 }
 
-// AddAdmin .
+// AddAdmin adds an admin for the registry
 func (r *AccountDIDRegistry) AddAdmin(caller DID) error {
 	if r.HasAdmin(caller) {
 		return fmt.Errorf("caller %s is already an admin", caller)
@@ -186,7 +187,7 @@ func (r *AccountDIDRegistry) AddAdmin(caller DID) error {
 	return nil
 }
 
-// RemoveAdmin .
+// RemoveAdmin removes an admin for the registry
 func (r *AccountDIDRegistry) RemoveAdmin(caller DID) error {
 	for i, admin := range r.Admins {
 		if admin == caller {
@@ -197,7 +198,7 @@ func (r *AccountDIDRegistry) RemoveAdmin(caller DID) error {
 	return fmt.Errorf("caller %s is not an admin", caller)
 }
 
-// HasAdmin .
+// HasAdmin checks whether caller is an admin of the registry
 func (r *AccountDIDRegistry) HasAdmin(caller DID) bool {
 	for _, v := range r.Admins {
 		if v == caller {
@@ -207,7 +208,7 @@ func (r *AccountDIDRegistry) HasAdmin(caller DID) bool {
 	return false
 }
 
-// GetChainDID .
+// GetChainDID get chain did of the registry
 func (r *AccountDIDRegistry) GetChainDID() DID {
 	return r.SelfChainDID
 }
@@ -226,13 +227,13 @@ func (r *AccountDIDRegistry) RegisterWithDoc(doc Doc) (string, []byte, error) {
 	return r.updateByStatus(DocOption{Content: doc}, Initial, Normal)
 }
 
-// Update updates data about a account did
+// Update updates data of an account did
 // ATN: only caller who owns did should call this
 func (r *AccountDIDRegistry) Update(accountDID DID, addr string, hash []byte) (string, []byte, error) {
 	return r.updateByStatus(DocOption{ID: accountDID, Addr: addr, Hash: hash}, Normal, Normal)
 }
 
-// Update with doc
+// UpdateWithDoc updates with doc
 func (r *AccountDIDRegistry) UpdateWithDoc(doc Doc) (string, []byte, error) {
 	return r.updateByStatus(DocOption{Content: doc}, Normal, Normal)
 }
@@ -283,7 +284,7 @@ func (r *AccountDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatu
 		did = doc.GetID()
 
 		// check exist
-		exist := r.HasDID(did)
+		exist := r.HasAccountDID(did)
 		if expectedStatus == Initial && exist == true {
 			return "", nil, "", fmt.Errorf("DID %s already existed", did)
 		} else if expectedStatus == Normal && exist == false {
@@ -327,20 +328,20 @@ func (r *AccountDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatu
 	return docAddr, docHash, did, nil
 }
 
-// Freeze .
+// Freeze freezes an account did
 // ATN: only admin should call this.
 func (r *AccountDIDRegistry) Freeze(did DID) error {
-	exist := r.HasDID(did)
+	exist := r.HasAccountDID(did)
 	if exist == false {
 		return fmt.Errorf("DID %s not existed", did)
 	}
 	return r.auditStatus(did, Frozen)
 }
 
-// UnFreeze .
+// UnFreeze unfreezes an account did
 // ATN: only admin should call this.
 func (r *AccountDIDRegistry) UnFreeze(did DID) error {
-	exist := r.HasDID(did)
+	exist := r.HasAccountDID(did)
 	if exist == false {
 		return fmt.Errorf("DID %s not existed", did)
 	}
@@ -350,7 +351,7 @@ func (r *AccountDIDRegistry) UnFreeze(did DID) error {
 // Resolve looks up local-chain to resolve did.
 // @*AccountDoc returns nil if mode is ExternalDocDB
 func (r *AccountDIDRegistry) Resolve(did DID) (*AccountItem, *AccountDoc, bool, error) {
-	exist := r.HasDID(did)
+	exist := r.HasAccountDID(did)
 	if exist == false {
 		return nil, nil, false, fmt.Errorf("DID %s not existed", did)
 	}
@@ -373,7 +374,7 @@ func (r *AccountDIDRegistry) Resolve(did DID) (*AccountItem, *AccountDoc, bool, 
 	return itemD, nil, true, nil
 }
 
-// Delete .
+// Delete deletes data of an account did
 func (r *AccountDIDRegistry) Delete(did DID) error {
 	err := r.auditStatus(did, Initial)
 	if err != nil {
@@ -386,8 +387,8 @@ func (r *AccountDIDRegistry) Delete(did DID) error {
 	return nil
 }
 
-// HasDID .
-func (r *AccountDIDRegistry) HasDID(did DID) bool {
+// HasAccountDID checks whether an account did exists
+func (r *AccountDIDRegistry) HasAccountDID(did DID) bool {
 	exist := r.Table.HasItem(did)
 	return exist
 }

@@ -93,20 +93,20 @@ type BasicItem struct {
 	Status  StatusType // status of the item
 }
 
-// PubKey .
+// PubKey represents publick key
 type PubKey struct {
 	ID           string `json:"id"`
 	Type         string `json:"type"`
 	PublicKeyPem string `json:"publicKeyPem"`
 }
 
-// Auth .
+// Auth represents authentication infomation
 type Auth struct {
 	PublicKey []string `json:"publicKey"` // ID of PublicKey
 	Strategy  string   `json:"strategy"`  // strategy of publicKey combination
 }
 
-// IsValidFormat .
+// IsValidFormat checks whether did is valid format
 func (did DID) IsValidFormat() bool {
 	s := strings.Split(string(did), ":")
 	if len(s) != 4 || s[0] != "did" || s[1] == "" || s[2] == "" || s[3] == "" {
@@ -142,11 +142,12 @@ func (did DID) GetAddress() string {
 	return s[3]
 }
 
-// GetChainDID .
+// GetChainDID gets chain did of a did
 func (did DID) GetChainDID() string {
 	return "did:" + did.GetRootMethod() + ":" + did.GetSubMethod() + ":."
 }
 
+// GetType gets type of a did
 func (did DID) GetType() int {
 	if did.GetAddress() == "." {
 		return int(ChainDIDType)

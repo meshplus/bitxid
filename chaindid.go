@@ -11,32 +11,33 @@ import (
 
 var _ Doc = (*ChainDoc)(nil)
 
-// ChainDoc .
+// ChainDoc represents chain identity infomation
 type ChainDoc struct {
 	BasicDoc
 	Extra []byte `json:"extra"` // for further usage
 }
 
-// Marshal .
+// Marshal marshals chain doc
 func (cd *ChainDoc) Marshal() ([]byte, error) {
 	return Marshal(cd)
 }
 
-// Unmarshal .
+// Unmarshal unmarshals chain doc
 func (cd *ChainDoc) Unmarshal(docBytes []byte) error {
 	return Unmarshal(docBytes, &cd)
 }
 
-// GetID .
+// GetID gets id of chain doc
 func (cd *ChainDoc) GetID() DID {
 	return cd.ID
 }
 
-// GetType .
+// GetType gets type of chain doc
 func (cd *ChainDoc) GetType() int {
 	return cd.BasicDoc.Type
 }
 
+// IsValidFormat checks whether chain doc is valid format
 func (cd *ChainDoc) IsValidFormat() bool {
 	if cd.Created == 0 || cd.GetType() != int(ChainDIDType) {
 		return false
@@ -54,22 +55,22 @@ type ChainItem struct {
 	Owner DID // owner of the chain did, is a did, TODO: owner ==> owners
 }
 
-// Marshal .
+// Marshal marshals chain item
 func (mi *ChainItem) Marshal() ([]byte, error) {
 	return Marshal(mi)
 }
 
-// Unmarshal .
+// Unmarshal unmarshals chain item
 func (mi *ChainItem) Unmarshal(docBytes []byte) error {
 	return Unmarshal(docBytes, &mi)
 }
 
-// GetID .
+// GetID gets id of chain item
 func (mi *ChainItem) GetID() DID {
 	return mi.ID
 }
 
-var _ ChainAccountDIDManager = (*ChainDIDRegistry)(nil)
+var _ ChainDIDManager = (*ChainDIDRegistry)(nil)
 
 // ChainDIDRegistry .
 type ChainDIDRegistry struct {
@@ -111,7 +112,7 @@ func NewChainDIDRegistry(ts storage.Storage, l logrus.FieldLogger, options ...fu
 	return cr, nil
 }
 
-// WithChainDocStorage .
+// WithChainDocStorage used for InternalDocDB mode
 func WithChainDocStorage(ds storage.Storage) func(*ChainDIDRegistry) {
 	return func(cr *ChainDIDRegistry) {
 		db, _ := NewKVDocDB(ds)
@@ -120,14 +121,14 @@ func WithChainDocStorage(ds storage.Storage) func(*ChainDIDRegistry) {
 	}
 }
 
-// WithAdmin .
+// WithAdmin used for admin setup
 func WithAdmin(a DID) func(*ChainDIDRegistry) {
 	return func(cr *ChainDIDRegistry) {
 		cr.Admins = []DID{a}
 	}
 }
 
-// WithGenesisChainDoc .
+// WithGenesisChainDoc used for genesis chain doc setup
 func WithGenesisChainDoc(docOption DocOption) func(*ChainDIDRegistry) {
 	return func(cr *ChainDIDRegistry) {
 		cr.GenesisChainDoc = docOption
@@ -171,17 +172,17 @@ func (r *ChainDIDRegistry) SetupGenesis() error {
 	return nil
 }
 
-// GetSelfID .
+// GetSelfID gets genesis did of the registry
 func (r *ChainDIDRegistry) GetSelfID() DID {
 	return r.GenesisChainDID
 }
 
-// GetAdmins .
+// GetAdmins gets admin list of the registry
 func (r *ChainDIDRegistry) GetAdmins() []DID {
 	return r.Admins
 }
 
-// AddAdmin .
+// AddAdmin adds an admin for the registry
 func (r *ChainDIDRegistry) AddAdmin(caller DID) error {
 	if r.HasAdmin(caller) {
 		return fmt.Errorf("caller %s is already an admin", caller)
@@ -190,7 +191,7 @@ func (r *ChainDIDRegistry) AddAdmin(caller DID) error {
 	return nil
 }
 
-// RemoveAdmin .
+// RemoveAdmin removes an admin for the registry
 func (r *ChainDIDRegistry) RemoveAdmin(caller DID) error {
 	for i, admin := range r.Admins {
 		if admin == caller {
@@ -201,7 +202,7 @@ func (r *ChainDIDRegistry) RemoveAdmin(caller DID) error {
 	return fmt.Errorf("caller %s is not an admin", caller)
 }
 
-// HasAdmin .
+// HasAdmin checks whether caller is an admin of the registry
 func (r *ChainDIDRegistry) HasAdmin(caller DID) bool {
 	for _, v := range r.Admins {
 		if v == caller {
@@ -218,7 +219,7 @@ func (r *ChainDIDRegistry) Apply(caller DID, chainDID DID) error {
 		return fmt.Errorf("ChainDID is not standard")
 	}
 
-	status := r.GetChainDIDStatus(chainDID)
+	status := r.getChainDIDStatus(chainDID)
 	if status != Initial {
 		return fmt.Errorf("can not apply %s under status: %s", chainDID, status)
 	}
@@ -235,14 +236,14 @@ func (r *ChainDIDRegistry) Apply(caller DID, chainDID DID) error {
 	return nil
 }
 
-// AuditApply .
+// AuditApply audits status of a chain did application
 // ATNS: only admin should call this.
 func (r *ChainDIDRegistry) AuditApply(chainDID DID, result bool) error {
 	exist := r.HasChainDID(chainDID)
 	if exist == false {
 		return fmt.Errorf("auditapply %s not existed", chainDID)
 	}
-	status := r.GetChainDIDStatus(chainDID)
+	status := r.getChainDIDStatus(chainDID)
 	if !(status == ApplyAudit || status == ApplyFailed) {
 		return fmt.Errorf("can not auditapply %s under status: %s", chainDID, status)
 	}
@@ -277,7 +278,7 @@ func (r *ChainDIDRegistry) Update(chainDID DID, addr string, hash []byte) (strin
 	return r.updateByStatus(DocOption{ID: chainDID, Addr: addr, Hash: hash}, Normal, Normal)
 }
 
-// Update with doc
+// UpdateWithDoc updates with doc
 func (r *ChainDIDRegistry) UpdateWithDoc(doc Doc) (string, []byte, error) {
 	return r.updateByStatus(DocOption{Content: doc}, Normal, Normal)
 }
@@ -315,7 +316,7 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 		// check exist
 		doc := docOption.Content.(*ChainDoc)
 		chainDID = doc.GetID()
-		status := r.GetChainDIDStatus(chainDID)
+		status := r.getChainDIDStatus(chainDID)
 		if status != expectedStatus {
 			return "", nil, "", fmt.Errorf("ChainDID %s is under status: %s, expected status: %s", chainDID, status, expectedStatus)
 		}
@@ -339,7 +340,7 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 		chainDID = docOption.ID
 		docAddr = docOption.Addr
 		docHash = docOption.Hash
-		status := r.GetChainDIDStatus(chainDID)
+		status := r.getChainDIDStatus(chainDID)
 		if status != expectedStatus {
 			return "", nil, "", fmt.Errorf("ChainDID %s is under status: %s, expected status: %s", chainDID, status, expectedStatus)
 		}
@@ -347,7 +348,7 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 	return docAddr, docHash, chainDID, nil
 }
 
-// Audit .
+// Audit audits status of a chain did
 // ATN: only admin should call this.
 func (r *ChainDIDRegistry) Audit(chainDID DID, status StatusType) error {
 	exist := r.HasChainDID(chainDID)
@@ -357,7 +358,7 @@ func (r *ChainDIDRegistry) Audit(chainDID DID, status StatusType) error {
 	return r.auditStatus(chainDID, status)
 }
 
-// Freeze .
+// Freeze freezes a chain did
 // ATN: only admdin should call this.
 func (r *ChainDIDRegistry) Freeze(chainDID DID) error {
 	exist := r.HasChainDID(chainDID)
@@ -367,7 +368,7 @@ func (r *ChainDIDRegistry) Freeze(chainDID DID) error {
 	return r.auditStatus(chainDID, Frozen)
 }
 
-// UnFreeze .
+// UnFreeze unfreezes a chain did
 // ATN: only admdin should call this.
 func (r *ChainDIDRegistry) UnFreeze(chainDID DID) error {
 	exist := r.HasChainDID(chainDID)
@@ -378,7 +379,7 @@ func (r *ChainDIDRegistry) UnFreeze(chainDID DID) error {
 	return r.auditStatus(chainDID, Normal)
 }
 
-// Delete .
+// Delete deletes data of a chain did
 func (r *ChainDIDRegistry) Delete(chainDID DID) error {
 	err := r.auditStatus(chainDID, Initial)
 	if err != nil {
@@ -395,7 +396,7 @@ func (r *ChainDIDRegistry) Delete(chainDID DID) error {
 }
 
 // Resolve looks up local-chain to resolve chain did.
-// @*AccountDoc returns nil if mode is ExternalDocDB
+// @*ChainDoc returns nil if mode is ExternalDocDB
 func (r *ChainDIDRegistry) Resolve(chainDID DID) (*ChainItem, *ChainDoc, bool, error) {
 	exist := r.HasChainDID(chainDID)
 	if exist == false {
@@ -418,13 +419,13 @@ func (r *ChainDIDRegistry) Resolve(chainDID DID) (*ChainItem, *ChainDoc, bool, e
 	return itemM, nil, true, nil
 }
 
-// HasChainDID .
+// HasChainDID checks whether a chain did exists
 func (r *ChainDIDRegistry) HasChainDID(chainDID DID) bool {
 	exist := r.Table.HasItem(chainDID)
 	return exist
 }
 
-func (r *ChainDIDRegistry) GetChainDIDStatus(chainDID DID) StatusType {
+func (r *ChainDIDRegistry) getChainDIDStatus(chainDID DID) StatusType {
 	if !r.Table.HasItem(chainDID) {
 		return Initial
 	}
@@ -437,7 +438,6 @@ func (r *ChainDIDRegistry) GetChainDIDStatus(chainDID DID) StatusType {
 	return itemM.Status
 }
 
-// auditStatus .
 func (r *ChainDIDRegistry) auditStatus(chainDID DID, status StatusType) error {
 	item, err := r.Table.GetItem(chainDID, ChainDIDType)
 	if err != nil {

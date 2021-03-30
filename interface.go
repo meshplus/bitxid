@@ -36,6 +36,8 @@ type RegistryTable interface {
 	Close() error
 }
 
+// BasicManager represents basic did management that should be used
+// by other type of did management registry.
 type BasicManager interface {
 	SetupGenesis() error
 	GetSelfID() DID
@@ -45,8 +47,8 @@ type BasicManager interface {
 	HasAdmin(caller DID) bool
 }
 
-// ChainAccountDIDManager represents chain did management registry
-type ChainAccountDIDManager interface {
+// ChainDIDManager represents chain did management registry
+type ChainDIDManager interface {
 	BasicManager
 	HasChainDID(method DID) bool
 
@@ -67,7 +69,7 @@ type ChainAccountDIDManager interface {
 type AccountDIDManager interface {
 	BasicManager
 	GetChainDID() DID
-	HasDID(did DID) bool
+	HasAccountDID(did DID) bool
 
 	Register(chainDID DID, addr string, hash []byte) (string, []byte, error)
 	RegisterWithDoc(doc Doc) (string, []byte, error)
