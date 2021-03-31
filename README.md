@@ -41,6 +41,4 @@ Wechat: If you‘re interested in BitXID or BitXHub, please add the assistant to
 
 ## License
 
-The BitXID library (i.e. all code outside of the cmd and internal directory) is licensed under the GNU Lesser General Public License v3.0, also included in our repository in the COPYING.LESSER file.
-
-The BitXID binaries (i.e. all code inside of the cmd and internal directory) is licensed under the GNU General Public License v3.0, also included in our repository in the COPYING file.
+BitXID is under the APACHE LICENSE VERSION 2.0.
