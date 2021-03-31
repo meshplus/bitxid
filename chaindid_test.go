@@ -67,7 +67,10 @@ func newChainDIDModeInternal(t *testing.T) (*ChainDIDRegistry, string, string) {
 	assert.Nil(t, err)
 	s2, err := leveldb.New(mdbPath)
 	assert.Nil(t, err)
-	mr, err := NewChainDIDRegistry(s1, l, WithGenesisChainDoc(DocOption{Content: &mdoc}), WithAdmin(superAdmin), WithChainDocStorage(s2))
+	mr, err := NewChainDIDRegistry(s1, l,
+		WithGenesisChainDocContent(&mdoc),
+		WithAdmin(superAdmin),
+		WithChainDocStorage(s2))
 	assert.Nil(t, err)
 	return mr, mrtPath, mdbPath
 }
@@ -81,12 +84,14 @@ func newChainDIDModeExternal(t *testing.T) (*ChainDIDRegistry, string) {
 	l := loggerGet(loggerChainDID)
 	s1, err := leveldb.New(mrtPath)
 	assert.Nil(t, err)
-	mr, err := NewChainDIDRegistry(s1, l, WithGenesisChainDoc(DocOption{ID: rootChainDID, Addr: "/addr/to/doc", Hash: []byte{1}}), WithAdmin(superAdmin))
+	mr, err := NewChainDIDRegistry(s1, l,
+		WithGenesisChainDocInfo(DocInfo{rootChainDID, "/addr/to/doc", []byte{1}}),
+		WithAdmin(superAdmin))
 	assert.Nil(t, err)
 	return mr, mrtPath
 }
 
-func TestChainDIDMode_Internal(t *testing.T) {
+func TestChainDIDModeInternal(t *testing.T) {
 	mr, drtPath, ddbPath := newChainDIDModeInternal(t)
 
 	testChainDIDSetupGenesSucceed(t, mr)
@@ -110,7 +115,7 @@ func TestChainDIDMode_Internal(t *testing.T) {
 	testCloseSucceedInternal(t, mr, drtPath, ddbPath)
 }
 
-func TestChainDIDMode_External(t *testing.T) {
+func TestChainDIDModeExternal(t *testing.T) {
 	mr, drtPath := newChainDIDModeExternal(t)
 
 	testChainDIDSetupGenesSucceed(t, mr)

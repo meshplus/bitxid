@@ -39,7 +39,7 @@ func (d *KVDocDB) Create(doc Doc) (string, error) {
 	}
 	exist := d.Has(did)
 	if exist {
-		return "", fmt.Errorf("Item %s already existed in kvdb", did)
+		return "", fmt.Errorf("item %s already existed in kvdb", did)
 	}
 	valueBytes, err := doc.Marshal()
 	if err != nil {
@@ -57,7 +57,7 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 	}
 	exist := d.Has(did)
 	if !exist {
-		return "", fmt.Errorf("Item %s not existed in kvdb", did)
+		return "", fmt.Errorf("item %s not existed in kvdb", did)
 	}
 	valueBytes, err := doc.Marshal()
 	if err != nil {
@@ -71,7 +71,7 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 func (d *KVDocDB) Get(did DID, typ DIDType) (Doc, error) {
 	exist := d.Has(did)
 	if !exist {
-		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
+		return nil, fmt.Errorf("key %s not existed in kvdb", did)
 	}
 	valueBytes := d.Store.Get(docKey(did))
 	switch typ {

@@ -75,8 +75,8 @@ type AccountDIDManager interface {
 	RegisterWithDoc(doc Doc) (string, []byte, error)
 	Update(chainDID DID, addr string, hash []byte) (string, []byte, error)
 	UpdateWithDoc(doc Doc) (string, []byte, error)
-	// Register(docOption DocOption) (string, []byte, error)
-	// Update(docOption DocOption) (string, []byte, error)
+	// Register(DocInfo DocInfo) (string, []byte, error)
+	// Update(DocInfo DocInfo) (string, []byte, error)
 	Freeze(did DID) error
 	UnFreeze(did DID) error
 	Delete(did DID) error

@@ -9,32 +9,32 @@ linters:
     - dogsled
     - dupl
     - errcheck
-#    - funlen
+    - funlen
     - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
     - gofmt
     - goimports
-#    - golint
-#    - gomnd
+    - golint
+    # - gomnd
     - goprintffuncname
-#    - gosec
+    - gosec
     - gosimple
     - govet
     - ineffassign
-#    - interfacer
-#    - lll
+    - interfacer
+    - lll
     - misspell
     - nakedret
     - rowserrcheck
-#    - scopelint
+    - scopelint
     - staticcheck
     - structcheck
-#    - stylecheck
+    - stylecheck
     - typecheck
     - unconvert
-#    - unparam
-#    - unused
+    - unparam
+    # - unused
     - varcheck
-#    - whitespace
+    - whitespace

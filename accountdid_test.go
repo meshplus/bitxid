@@ -105,7 +105,7 @@ func newDIDModeInternal(t *testing.T) (*AccountDIDRegistry, string, string) {
 	r, err := NewAccountDIDRegistry(s1, l,
 		WithAccountDocStorage(s2),
 		WithDIDAdmin(rootAccountDID),
-		WithGenesisAccountDoc(DocOption{Content: &accountDoc}),
+		WithGenesisAccountDocContent(&accountDoc),
 	)
 	assert.Nil(t, err)
 	return r, drtPath, ddbPath
@@ -121,7 +121,7 @@ func newDIDModeExternal(t *testing.T) (*AccountDIDRegistry, string) {
 	assert.Nil(t, err)
 	r, err := NewAccountDIDRegistry(s1, l,
 		WithDIDAdmin(rootAccountDID),
-		WithGenesisAccountDoc(DocOption{ID: rootAccountDID, Addr: "/addr/to/doc", Hash: []byte{1}}),
+		WithGenesisAccountDocInfo(DocInfo{rootAccountDID, "/addr/to/doc", []byte{1}}),
 	)
 	assert.Nil(t, err)
 	return r, drtPath

@@ -8,10 +8,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/bitxhub/bitxid"
 	"github.com/meshplus/bitxhub-kit/log"
 	"github.com/meshplus/bitxhub-kit/storage/leveldb"
 	"github.com/meshplus/bitxhub-model/pb"
+	"github.com/meshplus/bitxid"
 )
 
 func main() {

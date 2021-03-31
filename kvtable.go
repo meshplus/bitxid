@@ -48,7 +48,7 @@ func (r *KVTable) CreateItem(item TableItem) error {
 	}
 	exist := r.HasItem(did)
 	if exist {
-		return fmt.Errorf("Key %s already existed in kvtable", did)
+		return fmt.Errorf("key %s already existed in kvtable", did)
 	}
 	return r.setItem(did, item)
 }
@@ -61,7 +61,7 @@ func (r *KVTable) UpdateItem(item TableItem) error {
 	}
 	exist := r.HasItem(did)
 	if !exist {
-		return fmt.Errorf("Key %s not existed in kvtable", did)
+		return fmt.Errorf("key %s not existed in kvtable", did)
 	}
 	return r.setItem(did, item)
 }
@@ -70,7 +70,7 @@ func (r *KVTable) UpdateItem(item TableItem) error {
 func (r *KVTable) GetItem(did DID, typ DIDType) (TableItem, error) {
 	exist := r.HasItem(did)
 	if !exist {
-		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
+		return nil, fmt.Errorf("key %s not existed in kvtable", did)
 	}
 	itemBytes := r.Store.Get(tbKey(did))
 	switch typ {

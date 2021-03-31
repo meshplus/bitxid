@@ -65,13 +65,11 @@ const (
 	Ed25519
 )
 
-// DocOption .
-// Content should be nil if Registry.mode == ExternalDocDB
-type DocOption struct {
-	ID      DID
-	Addr    string
-	Hash    []byte
-	Content Doc
+// DocInfo represent info about a doc
+type DocInfo struct {
+	ID   DID
+	Addr string
+	Hash []byte
 }
 
 // BasicDoc is the fundamental part of doc structure

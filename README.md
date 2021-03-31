@@ -1,8 +1,8 @@
 # BitXID
 
-![build](https://github.com/bitxhub/bitxid/workflows/build/badge.svg)
+![build](https://github.com/meshplus/bitxid/workflows/build/badge.svg)
 [![codecov](https://codecov.io/gh/bitxhub/bitxid/branch/master/graph/badge.svg)](https://codecov.io/gh/bitxhub/bitxid)
-[![Go Report Card](https://goreportcard.com/badge/github.com/bitxhub/bitxid)](https://goreportcard.com/report/github.com/bitxhub/bitxid)
+[![Go Report Card](https://goreportcard.com/badge/github.com/meshplus/bitxid)](https://goreportcard.com/report/github.com/meshplus/bitxid)
 
 BitXID is a DID framework which complys with W3C DID(Decentralized Identifiers) specifications. It has the following features:
 
@@ -14,13 +14,13 @@ BitXID is a DID framework which complys with W3C DID(Decentralized Identifiers) 
 Install `bitxid` package:
 
 ```shell
-go get -u github.com/bitxhub/bitxid
+go get -u github.com/meshplus/bitxid
 ```
 
 import it in your code:
 
 ```go
-import "github.com/bitxhub/bitxid"
+import "github.com/meshplus/bitxid"
 ```
 
 ## Example

@@ -10,7 +10,6 @@ import (
 )
 
 func TestTABLECURD(t *testing.T) {
-
 	dir, err := ioutil.TempDir("", "registry.table")
 	assert.Nil(t, err)
 
