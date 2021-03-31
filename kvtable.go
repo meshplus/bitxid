@@ -14,9 +14,9 @@ type KVTable struct {
 var _ RegistryTable = (*KVTable)(nil)
 
 // NewKVTable .
-func NewKVTable(S storage.Storage) (*KVTable, error) {
+func NewKVTable(s storage.Storage) (*KVTable, error) {
 	return &KVTable{
-		Store: S,
+		Store: s,
 	}, nil
 }
 
@@ -47,7 +47,7 @@ func (r *KVTable) CreateItem(item TableItem) error {
 		return fmt.Errorf("kvtable create item id is null")
 	}
 	exist := r.HasItem(did)
-	if exist == true {
+	if exist {
 		return fmt.Errorf("Key %s already existed in kvtable", did)
 	}
 	return r.setItem(did, item)
@@ -60,17 +60,16 @@ func (r *KVTable) UpdateItem(item TableItem) error {
 		return fmt.Errorf("kvtable create item id is null")
 	}
 	exist := r.HasItem(did)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("Key %s not existed in kvtable", did)
 	}
-	r.setItem(did, item)
-	return nil
+	return r.setItem(did, item)
 }
 
 // GetItem checks ang gets
 func (r *KVTable) GetItem(did DID, typ DIDType) (TableItem, error) {
 	exist := r.HasItem(did)
-	if exist == false {
+	if !exist {
 		return nil, fmt.Errorf("Key %s not existed in kvtable", did)
 	}
 	itemBytes := r.Store.Get(tbKey(did))

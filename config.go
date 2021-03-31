@@ -1,7 +1,5 @@
 package bitxid
 
-const configName = "bitxid.toml"
-
 func getAdminDoc() *AccountDoc {
 	doc := &AccountDoc{}
 	doc.ID = "did:bitxhub:appchain001:0x00000001"

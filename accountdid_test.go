@@ -131,7 +131,7 @@ func testSetupDIDSucceed(t *testing.T, r *AccountDIDRegistry) {
 }
 
 func testHasDIDSucceed(t *testing.T, r *AccountDIDRegistry) {
-	ret1 := r.HasAccountDID(DID(r.GenesisAccountDID))
+	ret1 := r.HasAccountDID(r.GenesisAccountDID)
 	assert.Equal(t, true, ret1)
 }
 
@@ -195,6 +195,7 @@ func testDIDUpdateSucceedExternal(t *testing.T, r *AccountDIDRegistry) {
 
 func testDIDResolveSucceedInternal(t *testing.T, r *AccountDIDRegistry) {
 	item, doc, _, err := r.Resolve(testAccountDID)
+	assert.Nil(t, err)
 	docBBytes, err := Marshal(accountDocB)
 	assert.Nil(t, err)
 	docHashE := sha256.Sum256(docBBytes)

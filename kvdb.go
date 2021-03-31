@@ -15,9 +15,9 @@ type KVDocDB struct {
 var _ DocDB = (*KVDocDB)(nil)
 
 // NewKVDocDB .
-func NewKVDocDB(S storage.Storage) (*KVDocDB, error) {
+func NewKVDocDB(s storage.Storage) (*KVDocDB, error) {
 	return &KVDocDB{
-		Store:     S,
+		Store:     s,
 		BasicAddr: ".",
 	}, nil
 }
@@ -38,7 +38,7 @@ func (d *KVDocDB) Create(doc Doc) (string, error) {
 		return "", fmt.Errorf("kvdb create doc id is null")
 	}
 	exist := d.Has(did)
-	if exist == true {
+	if exist {
 		return "", fmt.Errorf("Item %s already existed in kvdb", did)
 	}
 	valueBytes, err := doc.Marshal()
@@ -56,7 +56,7 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 		return "", fmt.Errorf("kvdb update doc id is null")
 	}
 	exist := d.Has(did)
-	if exist == false {
+	if !exist {
 		return "", fmt.Errorf("Item %s not existed in kvdb", did)
 	}
 	valueBytes, err := doc.Marshal()
@@ -70,7 +70,7 @@ func (d *KVDocDB) Update(doc Doc) (string, error) {
 // Get .
 func (d *KVDocDB) Get(did DID, typ DIDType) (Doc, error) {
 	exist := d.Has(did)
-	if exist == false {
+	if !exist {
 		return nil, fmt.Errorf("Key %s not existed in kvdb", did)
 	}
 	valueBytes := d.Store.Get(docKey(did))

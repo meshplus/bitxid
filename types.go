@@ -100,7 +100,7 @@ type PubKey struct {
 	PublicKeyPem string `json:"publicKeyPem"`
 }
 
-// Auth represents authentication infomation
+// Auth represents authentication information
 type Auth struct {
 	PublicKey []string `json:"publicKey"` // ID of PublicKey
 	Strategy  string   `json:"strategy"`  // strategy of publicKey combination

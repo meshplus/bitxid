@@ -11,7 +11,7 @@ import (
 
 var _ Doc = (*AccountDoc)(nil)
 
-// AccountDoc represents account identity infomation
+// AccountDoc represents account identity information
 type AccountDoc struct {
 	BasicDoc
 	Service string `json:"service"`
@@ -156,7 +156,7 @@ func (r *AccountDIDRegistry) SetupGenesis() error {
 		_, _, err = r.Register(r.GenesisAccountDoc.ID, r.GenesisAccountDoc.Addr, r.GenesisAccountDoc.Hash)
 	} else {
 		_, _, err = r.RegisterWithDoc(r.GenesisAccountDoc.Content)
-		r.SelfChainDID = DID(DID(r.GenesisAccountDoc.Content.GetID()).GetAddress())
+		r.SelfChainDID = DID(r.GenesisAccountDoc.Content.GetID().GetAddress())
 	}
 
 	if err != nil {
@@ -285,9 +285,9 @@ func (r *AccountDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatu
 
 		// check exist
 		exist := r.HasAccountDID(did)
-		if expectedStatus == Initial && exist == true {
+		if expectedStatus == Initial && exist {
 			return "", nil, "", fmt.Errorf("DID %s already existed", did)
-		} else if expectedStatus == Normal && exist == false {
+		} else if expectedStatus == Normal && !exist {
 			return "", nil, "", fmt.Errorf("DID %s not existed", did)
 		}
 
@@ -332,7 +332,7 @@ func (r *AccountDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatu
 // ATN: only admin should call this.
 func (r *AccountDIDRegistry) Freeze(did DID) error {
 	exist := r.HasAccountDID(did)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("DID %s not existed", did)
 	}
 	return r.auditStatus(did, Frozen)
@@ -342,7 +342,7 @@ func (r *AccountDIDRegistry) Freeze(did DID) error {
 // ATN: only admin should call this.
 func (r *AccountDIDRegistry) UnFreeze(did DID) error {
 	exist := r.HasAccountDID(did)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("DID %s not existed", did)
 	}
 	return r.auditStatus(did, Normal)
@@ -352,7 +352,7 @@ func (r *AccountDIDRegistry) UnFreeze(did DID) error {
 // @*AccountDoc returns nil if mode is ExternalDocDB
 func (r *AccountDIDRegistry) Resolve(did DID) (*AccountItem, *AccountDoc, bool, error) {
 	exist := r.HasAccountDID(did)
-	if exist == false {
+	if !exist {
 		return nil, nil, false, fmt.Errorf("DID %s not existed", did)
 	}
 
@@ -409,10 +409,7 @@ func (r *AccountDIDRegistry) getDIDStatus(did DID) StatusType {
 //  caller naturally owns the did ended with his address.
 func (r *AccountDIDRegistry) owns(caller string, did DID) bool {
 	s := strings.Split(string(did), ":")
-	if s[len(s)-1] == caller {
-		return true
-	}
-	return false
+	return s[len(s)-1] == caller
 }
 
 func (r *AccountDIDRegistry) auditStatus(did DID, status StatusType) error {

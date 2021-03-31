@@ -10,17 +10,17 @@ import (
 var testDid = DID("did:bitxhub:test-method:test-address")
 
 func TestGetRootMethod(t *testing.T) {
-	method := DID(testDid).GetRootMethod()
+	method := testDid.GetRootMethod()
 	assert.Equal(t, "bitxhub", method)
 }
 
 func TestGetSubMethod(t *testing.T) {
-	method := DID(testDid).GetSubMethod()
+	method := testDid.GetSubMethod()
 	assert.Equal(t, "test-method", method)
 }
 
 func TestGetAddress(t *testing.T) {
-	addr := DID(testDid).GetAddress()
+	addr := testDid.GetAddress()
 	assert.Equal(t, "test-address", addr)
 }
 

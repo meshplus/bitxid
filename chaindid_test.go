@@ -142,7 +142,7 @@ func testChainDIDSetupGenesSucceed(t *testing.T, mr *ChainDIDRegistry) {
 }
 
 func testHasChainDIDSucceed(t *testing.T, mr *ChainDIDRegistry) {
-	ret1 := mr.HasChainDID(DID(mr.GenesisChainDID))
+	ret1 := mr.HasChainDID(mr.GenesisChainDID)
 	assert.Equal(t, true, ret1)
 }
 
@@ -273,7 +273,7 @@ func testChainDIDResolveSucceedInternal(t *testing.T, mr *ChainDIDRegistry) {
 	assert.Nil(t, err)
 	assert.Equal(t, &mdocB, doc) // compare doc
 	itemE := ChainItem{
-		BasicItem{ID: DID(chainDID),
+		BasicItem{ID: chainDID,
 			DocAddr: docAddrE,
 			Status:  Normal},
 		mcaller,
@@ -290,7 +290,7 @@ func testChainDIDResolveSucceedExternal(t *testing.T, mr *ChainDIDRegistry) {
 	assert.Nil(t, err)
 	assert.Nil(t, doc)
 	itemE := ChainItem{
-		BasicItem: BasicItem{ID: DID(chainDID),
+		BasicItem: BasicItem{ID: chainDID,
 			DocAddr: docAddrE,
 			Status:  Normal},
 	}

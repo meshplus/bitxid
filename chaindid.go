@@ -11,7 +11,7 @@ import (
 
 var _ Doc = (*ChainDoc)(nil)
 
-// ChainDoc represents chain identity infomation
+// ChainDoc represents chain identity information
 type ChainDoc struct {
 	BasicDoc
 	Extra []byte `json:"extra"` // for further usage
@@ -215,7 +215,7 @@ func (r *ChainDIDRegistry) HasAdmin(caller DID) bool {
 // Apply apply for rights of a new methd-name
 func (r *ChainDIDRegistry) Apply(caller DID, chainDID DID) error {
 	// check if ChainDID Name meets standard
-	if !DID(chainDID).IsValidFormat() {
+	if !chainDID.IsValidFormat() {
 		return fmt.Errorf("ChainDID is not standard")
 	}
 
@@ -227,7 +227,7 @@ func (r *ChainDIDRegistry) Apply(caller DID, chainDID DID) error {
 	err := r.Table.CreateItem(
 		&ChainItem{
 			BasicItem{
-				ID:     DID(chainDID),
+				ID:     chainDID,
 				Status: ApplyAudit},
 			caller})
 	if err != nil {
@@ -240,14 +240,14 @@ func (r *ChainDIDRegistry) Apply(caller DID, chainDID DID) error {
 // ATNS: only admin should call this.
 func (r *ChainDIDRegistry) AuditApply(chainDID DID, result bool) error {
 	exist := r.HasChainDID(chainDID)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("auditapply %s not existed", chainDID)
 	}
 	status := r.getChainDIDStatus(chainDID)
 	if !(status == ApplyAudit || status == ApplyFailed) {
 		return fmt.Errorf("can not auditapply %s under status: %s", chainDID, status)
 	}
-	var err error = nil
+	var err error
 	if result {
 		err = r.auditStatus(chainDID, ApplySuccess)
 	} else {
@@ -352,7 +352,7 @@ func (r *ChainDIDRegistry) updateDocdbOrNot(docOption DocOption, expectedStatus 
 // ATN: only admin should call this.
 func (r *ChainDIDRegistry) Audit(chainDID DID, status StatusType) error {
 	exist := r.HasChainDID(chainDID)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("audit %s not existed", chainDID)
 	}
 	return r.auditStatus(chainDID, status)
@@ -362,7 +362,7 @@ func (r *ChainDIDRegistry) Audit(chainDID DID, status StatusType) error {
 // ATN: only admdin should call this.
 func (r *ChainDIDRegistry) Freeze(chainDID DID) error {
 	exist := r.HasChainDID(chainDID)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("freeze %s not existed", chainDID)
 	}
 	return r.auditStatus(chainDID, Frozen)
@@ -372,7 +372,7 @@ func (r *ChainDIDRegistry) Freeze(chainDID DID) error {
 // ATN: only admdin should call this.
 func (r *ChainDIDRegistry) UnFreeze(chainDID DID) error {
 	exist := r.HasChainDID(chainDID)
-	if exist == false {
+	if !exist {
 		return fmt.Errorf("unfreeze %s not existed", chainDID)
 	}
 
@@ -399,7 +399,7 @@ func (r *ChainDIDRegistry) Delete(chainDID DID) error {
 // @*ChainDoc returns nil if mode is ExternalDocDB
 func (r *ChainDIDRegistry) Resolve(chainDID DID) (*ChainItem, *ChainDoc, bool, error) {
 	exist := r.HasChainDID(chainDID)
-	if exist == false {
+	if !exist {
 		return nil, nil, false, nil
 	}
 	item, err := r.Table.GetItem(chainDID, ChainDIDType)
