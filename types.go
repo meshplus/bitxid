@@ -141,8 +141,8 @@ func (did DID) GetAddress() string {
 }
 
 // GetChainDID gets chain did of a did
-func (did DID) GetChainDID() string {
-	return "did:" + did.GetRootMethod() + ":" + did.GetSubMethod() + ":."
+func (did DID) GetChainDID() DID {
+	return DID("did:" + did.GetRootMethod() + ":" + did.GetSubMethod() + ":.")
 }
 
 // GetType gets type of a did
