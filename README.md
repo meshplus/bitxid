@@ -25,7 +25,7 @@ import "github.com/meshplus/bitxid"
 
 ## Example
 
-BitXID is already used by several great projects, among which [BitXHub](https://github.com/meshplus/bitxhub) is one of them. BitXHub DID has already registered on [DIF Universal Resolver](https://github.com/decentralized-identity/universal-resolver). You can find BitXHub DID Implementation [here](https://github.com/bitxhub/did-method-registry) and the design of BitXHub DID in the latest [BitXHub WhitePaper](https://upload.hyperchain.cn/BitXHub白皮书.pdf).
+BitXID is already used by several great projects, among which [BitXHub](https://github.com/meshplus/bitxhub) is one of them. BitXHub DID has already registered on [DIF Universal Resolver](https://github.com/decentralized-identity/universal-resolver). You can find BitXHub DID Implementation [here](https://github.com/meshplus/did-registry) and the design of BitXHub DID in the latest [BitXHub WhitePaper](https://upload.hyperchain.cn/BitXHub白皮书.pdf).
 
 ## Usage
 
