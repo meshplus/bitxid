@@ -143,15 +143,15 @@ func main() {
 	}
 
 	// 初始化存储：
-	dirTable, _ := ioutil.TempDir("../../../", "did.table")
+	dirTable, _ := ioutil.TempDir("", "did.table")
 	l := log.NewWithModule("chain-did")
 	sTable, _ := leveldb.New(dirTable)
 
 	// 构建一个 ChainDIDRegistry 实例（ExternalDocDB模式，无需WithChainDocStorage）：
 	mr, _ := bitxid.NewChainDIDRegistry(sTable, l,
 		bitxid.WithAdmin(adminDID),
-		bitxid.WithGenesisChainDoc(
-			bitxid.DocOption{ID: relaychainDID, Addr: relaychainDocAddr, Hash: relaychainDocHash[:]},
+		bitxid.WithGenesisChainDocInfo(
+			bitxid.DocInfo{ID: relaychainDID, Addr: relaychainDocAddr, Hash: relaychainDocHash[:]},
 		),
 	)
 
@@ -270,20 +270,19 @@ func fakeDeleteDoc(did bitxid.DID) error {
 
 ```go
 // 省略其他代码，见examples/chain-did/internal/example.go
-mr, _ := bitxid.NewChainDIDRegistry(sTable, l,
+	mr, _ := bitxid.NewChainDIDRegistry(sTable, l,
 		bitxid.WithChainDocStorage(sDocdb),
 		bitxid.WithAdmin(adminDID),
-		bitxid.WithGenesisChainDoc(
-			bitxid.DocOption{Content: &relaychainDoc},
-		),
+		bitxid.WithGenesisChainDocContent(&relaychainDoc),
 	)
 ```
 
 实例化函数拥有如下几个选项函数：
 
-+ `WithChainDocStorage`：选择后Registry的将为**InternalDocDB**模式，如果不使用该选项则为**ExternalDocDB**模式，入参也是一个`Storage`接口的数据结构。
++ `WithChainDocStorage`：使用该选项后Registry的将为**InternalDocDB**模式，如果不使用该选项则为**ExternalDocDB**模式，入参也是一个`Storage`接口的数据结构。
 + `WithAdmin`：指定管理员账号
-+ `WithGenesisChainDoc`：指定网络中第一条链的身份信息文档（一般即自己）
++ `WithGenesisChainDocContent`：用于**InternalDocDB**模式，指定网络中第一条链的身份信息文档原文内容
++ `WithGenesisChainDocInfo`：用于**ExternalDocDB**模式，指定网络中第一条链的身份信息文档信息（包括存储地址等）
 
 ## 基础功能
 
@@ -333,6 +332,8 @@ err := mr.HasAdmin(admin)
 
 ## Chain DID
 
+以下是Chain DID的特有功能。
+
 ### 申请
 
 申请一个Chain DID的所有权：
@@ -369,7 +370,7 @@ docHash := fakeHash(docBytes) // 假设将Doc进行了哈希，返回了哈希�
 mr.Register(chainDID, docAddr, docHash[:])
 ```
 
-此处由于是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后将`chainDID`, `docAddr`, `docHash`作为参数传入`Register`方法。
+此处是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后将`chainDID`, `docAddr`, `docHash`作为参数传入`Register`方法。
 
 如果是 **InternalDocDB** 模式：
 
@@ -391,7 +392,7 @@ docHash = fakeHash(docBytes)      // 假设将Doc进行了哈希，返回了哈�
 mr.Update(chainDID, docAddr, docHash[:])
 ```
 
-此处由于是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后将`chainDID`, `docAddr`, `docHash`作为参数传入`Update`方法。
+此处是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后将`chainDID`, `docAddr`, `docHash`作为参数传入`Update`方法。
 
 如果是 **InternalDocDB** 模式：
 
@@ -419,7 +420,7 @@ if !fakeVerify(docGet.Authentication, interchain_tx) {
 }
 ```
 
-此处由于是 **ExternalDocDB** 模式，因此需要自己手动用存储地址去链下存储获取信息文档，然后将文档内容进行哈希并和原哈希进行比对，首先验证文档。然后在文档的使用上，bitxid虽然不强迫但建议使用者在验证身份时只需要符合`Authentication`数组中的一条验证规则即可证明用户确实已经授权交易。
+此处是 **ExternalDocDB** 模式，因此需要自己手动用存储地址去链下存储获取信息文档，然后将文档内容进行哈希，并和原哈希进行比对以验证文档。然后在文档的使用上，bitxid虽然不强迫但建议使用者在验证身份时只需要符合`Authentication`数组中的一条验证规则即可证明用户确实已经授权交易。
 
 如果是 **InternalDocDB** 模式：
 
@@ -437,7 +438,7 @@ if !fakeVerify(docGet.Authentication, interchain_tx) {
 
 ### 删除
 
-获得相关Chain DID的信息，如果是 **ExternalDocDB** 模式：
+删除相关Chain DID的信息，如果是 **ExternalDocDB** 模式：
 
 ```go
 mr.Delete(chainDID)
@@ -453,6 +454,8 @@ mr.Delete(chainDID)
 ```
 
 ## Account DID
+
+以下是Account DID的特有功能。
 
 ### 获取链身份
 
@@ -475,7 +478,7 @@ docHash := fakeHash(docBytes) // 假设将Doc进行了哈希，返回了哈希�
 ar.Register(accountDID, docAddr, docHash[:])
 ```
 
-此处由于是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后`将accountDID`, `docAddr`, `docHash`作为参数传入`Register`方法。
+此处是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后`将accountDID`, `docAddr`, `docHash`作为参数传入`Register`方法。
 
 **InternalDocDB** 模式下的注册：
 
@@ -497,7 +500,7 @@ docHash = fakeHash(docBytes) // 假设将Doc进行了哈希，返回了哈希结
 ar.Update(accountDID, docAddr, docHash[:])
 ```
 
-此处由于是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后将`accountDID`, `docAddr`, `docHash`作为参数传入`Update`方法。
+此处是 **ExternalDocDB** 模式，因此需要自己手动将相关信息的文档进行存储，并进行哈希，然后将`accountDID`, `docAddr`, `docHash`作为参数传入`Update`方法。
 
 如果是 **InternalDocDB** 模式：
 
@@ -537,7 +540,7 @@ if !fakeVerify(docGet.Authentication, interchain_tx) {
 }
 ```
 
-此处由于是 **ExternalDocDB** 模式，因此需要自己手动用存储地址去链下存储获取信息文档，然后将文档内容进行哈希并和原哈希进行比对，首先验证文档。然后在文档的使用上，与ChainDoc类似。
+此处是 **ExternalDocDB** 模式，因此需要自己手动用存储地址去链下存储获取信息文档，然后将文档内容进行哈希，并和原哈希进行比对以验证文档。然后在文档的使用上，与ChainDoc类似。
 
 如果是 **InternalDocDB** 模式：
 
@@ -555,7 +558,7 @@ if !fakeVerify(docGet.Authentication, interchain_tx) {
 
 ### 删除
 
-获得相关Chain DID的信息，如果是 **ExternalDocDB** 模式：
+删除相关Chain DID的信息，如果是 **ExternalDocDB** 模式：
 
 ```go
 ar.Delete(accountDID)

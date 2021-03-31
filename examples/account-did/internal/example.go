@@ -83,8 +83,8 @@ func main() {
 	ar, _ := bitxid.NewAccountDIDRegistry(sTable, l,
 		bitxid.WithAccountDocStorage(sDocdb),
 		bitxid.WithDIDAdmin(adminDID),
-		bitxid.WithGenesisAccountDoc(
-			bitxid.DocOption{Content: &adminDoc},
+		bitxid.WithGenesisAccountDocContent(
+			&adminDoc,
 		),
 	)
 

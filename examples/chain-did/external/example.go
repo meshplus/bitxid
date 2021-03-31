@@ -135,8 +135,8 @@ func main() {
 	// 构建一个 ChainDIDRegistry 实例（ExternalDocDB模式，无需WithChainDocStorage）：
 	mr, _ := bitxid.NewChainDIDRegistry(sTable, l,
 		bitxid.WithAdmin(adminDID),
-		bitxid.WithGenesisChainDoc(
-			bitxid.DocOption{ID: relaychainDID, Addr: relaychainDocAddr, Hash: relaychainDocHash[:]},
+		bitxid.WithGenesisChainDocInfo(
+			bitxid.DocInfo{ID: relaychainDID, Addr: relaychainDocAddr, Hash: relaychainDocHash[:]},
 		),
 	)
 

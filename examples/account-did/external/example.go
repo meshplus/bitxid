@@ -84,8 +84,8 @@ func main() {
 
 	// 构建一个 AccountDIDRegistry 实例（ExternalDocDB模式，无需WithAccountDocStorage）：
 	ar, _ := bitxid.NewAccountDIDRegistry(sTable, l,
-		bitxid.WithGenesisAccountDoc(
-			bitxid.DocOption{ID: adminDID, Addr: adminDocAddr, Hash: adminDocHash[:]},
+		bitxid.WithGenesisAccountDocInfo(
+			bitxid.DocInfo{ID: adminDID, Addr: adminDocAddr, Hash: adminDocHash[:]},
 		),
 	)
 

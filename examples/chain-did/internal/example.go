@@ -132,8 +132,8 @@ func main() {
 	mr, _ := bitxid.NewChainDIDRegistry(sTable, l,
 		bitxid.WithChainDocStorage(sDocdb),
 		bitxid.WithAdmin(adminDID),
-		bitxid.WithGenesisChainDoc(
-			bitxid.DocOption{Content: &relaychainDoc},
+		bitxid.WithGenesisChainDocContent(
+			&relaychainDoc,
 		),
 	)
 
