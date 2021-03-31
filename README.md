@@ -1,5 +1,9 @@
 # BitXID
 
+![build](https://github.com/bitxhub/bitxid/workflows/build/badge.svg)
+[![codecov](https://codecov.io/gh/bitxhub/bitxid/branch/master/graph/badge.svg)](https://codecov.io/gh/bitxhub/bitxid)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bitxhub/bitxid)](https://goreportcard.com/report/github.com/bitxhub/bitxid)
+
 BitXID is a DID framework which complys with W3C DID(Decentralized Identifiers) specifications. It has the following features:
 
 1. **Multiple storage management**: BitXID offers both on-chain storage and off-chain storage for DID storage. The best practice will be store small amounts of data(e.g. id, status, etc.) on-chain while store large amounts of data(e.g. public keys, authentication methods, etc.) off-chain(e.g. IPFS), and combines them by store hash of the data on-chain.
