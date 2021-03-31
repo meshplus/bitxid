@@ -9,20 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testStruct struct {
-	A int
-	B string
-	C []byte
-	D []string
-	E *subStruct
-}
-type subStruct struct {
-	M int
-	N string
-	O []byte
-	P []string
-}
-
 func TestTABLECURD(t *testing.T) {
 
 	dir, err := ioutil.TempDir("", "registry.table")

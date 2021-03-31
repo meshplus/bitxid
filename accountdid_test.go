@@ -37,13 +37,15 @@ func getAccountDoc(ran int) AccountDoc {
 		Type:         "Secp256k1",
 		PublicKeyPem: "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71",
 	}
-	if ran == 0 {
+	switch ran {
+	case 0:
 		docE.ID = rootAccountDID
-	} else if ran == 1 {
+	case 1:
 		docE.PublicKey = []PubKey{pk1}
-	} else {
+	case 2:
 		docE.PublicKey = []PubKey{pk2}
 	}
+
 	auth := Auth{
 		PublicKey: []string{"KEY#1"},
 	}
