@@ -50,19 +50,19 @@ type BasicManager interface {
 // ChainDIDManager represents chain did management registry
 type ChainDIDManager interface {
 	BasicManager
-	HasChainDID(method DID) bool
+	HasChainDID(chainDID DID) bool
 
-	Apply(caller DID, method DID) error
-	AuditApply(method DID, result bool) error
-	Audit(method DID, status StatusType) error
+	Apply(caller DID, chainDID DID) error
+	AuditApply(chainDID DID, result bool) error
+	Audit(chainDID DID, status StatusType) error
 	Register(chainDID DID, addr string, hash []byte) (string, []byte, error)
 	RegisterWithDoc(doc Doc) (string, []byte, error)
 	Update(chainDID DID, addr string, hash []byte) (string, []byte, error)
 	UpdateWithDoc(doc Doc) (string, []byte, error)
-	Freeze(method DID) error
-	UnFreeze(method DID) error
-	Resolve(method DID) (*ChainItem, *ChainDoc, bool, error)
-	Delete(method DID) error
+	Freeze(chainDID DID) error
+	UnFreeze(chainDID DID) error
+	Resolve(chainDID DID) (*ChainItem, *ChainDoc, bool, error)
+	Delete(chainDID DID) error
 }
 
 // AccountDIDManager represents account did management registry
@@ -71,12 +71,10 @@ type AccountDIDManager interface {
 	GetChainDID() DID
 	HasAccountDID(did DID) bool
 
-	Register(chainDID DID, addr string, hash []byte) (string, []byte, error)
+	Register(did DID, addr string, hash []byte) (string, []byte, error)
 	RegisterWithDoc(doc Doc) (string, []byte, error)
-	Update(chainDID DID, addr string, hash []byte) (string, []byte, error)
+	Update(did DID, addr string, hash []byte) (string, []byte, error)
 	UpdateWithDoc(doc Doc) (string, []byte, error)
-	// Register(DocInfo DocInfo) (string, []byte, error)
-	// Update(DocInfo DocInfo) (string, []byte, error)
 	Freeze(did DID) error
 	UnFreeze(did DID) error
 	Delete(did DID) error
