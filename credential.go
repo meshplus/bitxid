@@ -8,8 +8,8 @@ import (
 
 // ClaimTyp represents claim type
 type ClaimTyp struct {
-	ID      string     `json:"id"` // the universal id of claim type
-	Content []FieldTyp `json:"content"`
+	ID      string      `json:"id"` // the universal id of claim type
+	Content []*FieldTyp `json:"content"`
 }
 
 // FieldTyp represents field type
@@ -33,9 +33,9 @@ func (c *ClaimTyp) Unmarshal(docBytes []byte) error {
 type Credential struct {
 	ID         string `json:"id"`
 	Typ        string `json:"typ"`
-	Issuer     string `json:"issuer"`
-	Issued     string `json:"issued"`
-	Expiration string `json:"expiration"`
+	Issuer     DID    `json:"issuer"`
+	Issued     uint64 `json:"issued"`
+	Expiration uint64 `json:"expiration"`
 	Claim      string `json:"claim"` // jsonSchema string
 	Signature  Sig    `json:"signature"`
 }
@@ -85,6 +85,9 @@ func (vcr *VCRegistry) CreateClaimTyp(ct ClaimTyp) (string, error) {
 
 // GetClaimTyp gets a claim type
 func (vcr *VCRegistry) GetClaimTyp(ctid string) (*ClaimTyp, error) {
+	if !vcr.Store.Has(claimKey(ctid)) {
+		return nil, nil
+	}
 	ctb := vcr.Store.Get(claimKey(ctid))
 	c := &ClaimTyp{}
 	err := c.Unmarshal(ctb)
@@ -129,6 +132,9 @@ func (vcr *VCRegistry) StoreVC(c Credential) (string, error) {
 
 // GetVC gets a vc
 func (vcr *VCRegistry) GetVC(cid string) (*Credential, error) {
+	if !vcr.Store.Has(vcKey(cid)) {
+		return nil, nil
+	}
 	cb := vcr.Store.Get(vcKey(cid))
 	c := &Credential{}
 	err := c.Unmarshal(cb)
