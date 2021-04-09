@@ -80,3 +80,17 @@ type AccountDIDManager interface {
 	Delete(did DID) error
 	Resolve(did DID) (*AccountItem, *AccountDoc, bool, error)
 }
+
+// VCManager interface for verifiable credential management registry
+type VCManager interface {
+	CreateClaimTyp(ct ClaimTyp) (string, error)
+	GetClaimTyp(ctid string) (*ClaimTyp, error)
+	DeleteClaimtyp(ctid string)
+	GetAllClaimTyps() ([]*ClaimTyp, error)
+
+	StoreVC(c Credential) (string, error)
+	GetVC(cid string) (*Credential, error)
+	DeleteVC(cid string)
+	// IssueVC(did DID, claimContent string, claimTye string, signature Sig) ([]byte, error)
+	// RevokeVC(did DID) error
+}
