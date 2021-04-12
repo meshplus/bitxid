@@ -69,7 +69,7 @@ func TestVC(t *testing.T) {
 }
 
 func testCreateClaimTyp(t *testing.T, vcr *VCRegistry) {
-	id, err := vcr.CreateClaimTyp(testCT)
+	id, err := vcr.CreateClaimTyp(&testCT)
 	assert.Nil(t, err)
 	assert.Equal(t, id, testCT.ID)
 }
@@ -94,7 +94,7 @@ func testDeleteClaimtyp(t *testing.T, vcr *VCRegistry) {
 }
 
 func testStoreVC(t *testing.T, vcr *VCRegistry) {
-	id, err := vcr.StoreVC(testVC)
+	id, err := vcr.StoreVC(&testVC)
 	assert.Nil(t, err)
 	assert.Equal(t, id, testVC.ID)
 }

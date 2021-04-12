@@ -73,7 +73,7 @@ func NewVCRegistry(s storage.Storage) (*VCRegistry, error) {
 }
 
 // CreateClaimTyp creates new claim type
-func (vcr *VCRegistry) CreateClaimTyp(ct ClaimTyp) (string, error) {
+func (vcr *VCRegistry) CreateClaimTyp(ct *ClaimTyp) (string, error) {
 	ctb, err := ct.Marshal()
 	if err != nil {
 		return "", fmt.Errorf("claim type marshal: %w", err)
@@ -121,7 +121,7 @@ func (vcr *VCRegistry) GetAllClaimTyps() ([]*ClaimTyp, error) {
 }
 
 // StoreVC stores a vc
-func (vcr *VCRegistry) StoreVC(c Credential) (string, error) {
+func (vcr *VCRegistry) StoreVC(c *Credential) (string, error) {
 	cb, err := c.Marshal()
 	if err != nil {
 		return "", fmt.Errorf("vc marshal: %w", err)
