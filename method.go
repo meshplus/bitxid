@@ -74,10 +74,10 @@ type MethodRegistry struct {
 // NewMethodRegistry news a MethodRegistry
 func NewMethodRegistry(ts storage.Storage, l logrus.FieldLogger, options ...func(*MethodRegistry)) (*MethodRegistry, error) {
 	rt, _ := NewKVTable(ts)
-	db, _ := NewKVDocDB(nil)
+	db, _ := NewKVDocDB(ts)
 	doc := genesisMetohdDoc()
 	mr := &MethodRegistry{ // default config
-		Mode:          ExternalDocDB,
+		Mode:          InternalDocDB,
 		Table:         rt,
 		Docdb:         db,
 		logger:        l,
@@ -376,7 +376,7 @@ func (r *MethodRegistry) Delete(method DID) error {
 func (r *MethodRegistry) Resolve(method DID) (*MethodItem, *MethodDoc, bool, error) {
 	exist := r.HasMethod(method)
 	if exist == false {
-		return nil, nil, false, nil
+		return nil, nil, false, fmt.Errorf("Method doesn't exist")
 	}
 	item, err := r.Table.GetItem(method, MethodTableType)
 	if err != nil {

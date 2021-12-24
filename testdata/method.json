@@ -6,7 +6,7 @@
     "publicKey": [{
         "id": "KEY#1",
         "type": "Secp256k1",
-        "PublicKeyPem": "02b97c30de767f084ce3080168ee293053ba33b235d7116a3263d29f1450936b71"
+        "PublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEwtZbSU26b5Af8OrneM1duh4eDNC4CqfC\nWJma9hHaaMH1Dk20bikVp4OEMwTid+0tnHlpj65ToJ0GyGQFyxH8dw==\n-----END PUBLIC KEY-----"
     }],
     "controller": "did:bitxhub:relayroot:0x00000001",
     "authentication": 
